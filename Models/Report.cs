@@ -14,4 +14,8 @@ public class Report
     // Foreign Key
     public int UserID { get; set; }
     public User User { get; set; }
+    
+    // Navigation Property
+    public ICollection<Store> Stores { get; set; }
+    public ICollection<Product> Products { get; set; }
 }

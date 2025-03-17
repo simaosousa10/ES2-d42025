@@ -19,4 +19,7 @@ public class Price
 
     public int UserID { get; set; }
     public User User { get; set; }
+    
+    // Navigation Property
+    public ICollection<PriceConfirmation> PriceConfirmations { get; set; }
 }

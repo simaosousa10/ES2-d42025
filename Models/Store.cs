@@ -18,4 +18,5 @@ public class Store
 
     // Navigation Property
     public ICollection<Price> Prices { get; set; }
+    public ICollection<StoreProd> StoreProducts { get; set; }
 }
