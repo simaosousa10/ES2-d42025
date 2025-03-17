@@ -12,4 +12,11 @@ public class User
     public string Name { get; set; }
     public string Password { get; set; }
     public DateTime RegisterDate { get; set; }
+    
+    // Navigation Properties
+    public ICollection<Message> Messages { get; set; }
+    public ICollection<PriceConfirmation> PriceConfirmations { get; set; }
+    public ICollection<Email> Emails { get; set; }
+    public ICollection<Report> Reports { get; set; }
+    public ICollection<Price> Prices { get; set; }
 }

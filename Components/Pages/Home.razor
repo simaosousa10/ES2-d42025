@@ -22,24 +22,28 @@ else
     </ul>
 }
 
+@if (emails == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <ul>
+        @foreach (var email in emails)
+        {
+            <li>@email.User_Email</li>
+        }
+    </ul>
+}
+
 
 @code
 {
     User[] users;
+    Email[] emails;
     protected override async Task OnInitializedAsync()
     {
-        try
-        {
-            users = await Http.GetFromJsonAsync<User[]>("api/User");
-        }
-        catch (HttpRequestException ex)
-        {
-            Console.WriteLine($"Erro na requisição HTTP: {ex.Message}");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Erro inesperado: {ex.Message}");
-        }
-
+        users = await Http.GetFromJsonAsync<User[]>("api/User");
+        emails = await Http.GetFromJsonAsync<Email[]>("api/Email");
     }
 }
