@@ -13,12 +13,12 @@ public class ApplicationDbContext : DbContext
     public DbSet<User> Users { get; set; }
     public DbSet<Message> Messages { get; set; }
     public DbSet<PriceConfirmation> PriceConfirmations { get; set; }
-    public DbSet<Email> Emails { get; set; }
     public DbSet<Report> Reports { get; set; }
     public DbSet<Price> Prices { get; set; }
     public DbSet<Store> Stores { get; set; }
     public DbSet<Category> Categories { get; set; }
     public DbSet<Product> Products { get; set; }
+    public DbSet<Image> Images { get; set; } 
     public DbSet<StoreProd> StoreProducts { get; set; }
     
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -46,12 +46,6 @@ public class ApplicationDbContext : DbContext
             .HasOne(pc => pc.Price)
             .WithMany(p => p.PriceConfirmations)
             .HasForeignKey(pc => pc.PriceID)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        modelBuilder.Entity<Email>()
-            .HasOne(e => e.User)
-            .WithMany(u => u.Emails)
-            .HasForeignKey(e => e.UserID)
             .OnDelete(DeleteBehavior.Cascade);
 
         modelBuilder.Entity<Report>()
@@ -96,6 +90,11 @@ public class ApplicationDbContext : DbContext
             .HasForeignKey(p => p.CategoryID)
             .OnDelete(DeleteBehavior.Cascade);
         
+        modelBuilder.Entity<Image>()
+            .HasOne(i => i.Product)
+            .WithMany(p => p.Images)
+            .HasForeignKey(i => i.ProductId)
+            .OnDelete(DeleteBehavior.Cascade);
         
     }
 }

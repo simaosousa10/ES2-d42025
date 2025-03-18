@@ -22,28 +22,12 @@ else
     </ul>
 }
 
-@if (emails == null)
-{
-    <p><em>Loading...</em></p>
-}
-else
-{
-    <ul>
-        @foreach (var email in emails)
-        {
-            <li>@email.User_Email</li>
-        }
-    </ul>
-}
-
 
 @code
 {
     User[] users;
-    Email[] emails;
     protected override async Task OnInitializedAsync()
     {
         users = await Http.GetFromJsonAsync<User[]>("api/User");
-        emails = await Http.GetFromJsonAsync<Email[]>("api/Email");
     }
 }
