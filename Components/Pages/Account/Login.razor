@@ -1,0 +1,89 @@
+﻿@page "/login"
+
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Authentication
+@using ESIID42025.Components.Pages.Account.ViewModels
+@using ESIID42025.Data
+@using ESIID42025.Models
+@using Microsoft.AspNetCore.Authentication.Cookies
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.Components.Authorization
+
+@inject ApplicationDbContext AplicationDbContext
+@inject NavigationManager navigationManager
+@inject UserManager<User> UserManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<div class="row">
+    <div class="col-lg-4 offset-lg-4 pt-4 pb-4 border">
+        <EditForm Model="@Model" OnValidSubmit="Authenticate" FormName="LoginForm">
+            <DataAnnotationsValidator />
+            <div class="mb-3 text-center flex-column">
+                <img src="/images/avatar.png" style="max-height: 5rem;" />
+                <h3>LOGIN</h3>
+            </div>
+            <div class="mb-3">
+                <label>User Name</label>
+                <InputText @bind-Value="Model.UserName" class="form-control" placeholder="Username" />
+                <ValidationMessage For="() => Model.UserName" />
+            </div>
+            <div class="mb-3">
+                <label>Password</label>
+                <InputText @bind-Value="Model.Password" placeholder="Password" type="password" class="form-control" />
+                <ValidationMessage For="() => Model.Password" />
+            </div>
+            <div class="mb-3 text-center">
+                <span class="text-danger">@ErrorMessage</span>
+            </div>
+            <div class="mb-3 d-grid gap-2">
+                <button type="submit" class="btn btn-primary">Login</button>
+            </div>
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    [SupplyParameterFromForm]
+    public LoginViewModel Model { get; set; } = new();
+
+    private string? ErrorMessage;
+
+    private async Task Authenticate()
+    {
+        // Busca o usuário pelo nome
+        var userAccount = await UserManager.FindByNameAsync(Model.UserName);
+
+        // Verifica se o usuário existe e se a senha está correta
+        if (userAccount == null || !await UserManager.CheckPasswordAsync(userAccount, Model.Password))
+        {
+            ErrorMessage = "User not found or password is incorrect";
+            return;
+        }
+
+        // Obtém as roles do usuário
+        var roles = await UserManager.GetRolesAsync(userAccount);
+
+        // Cria as claims para o usuário
+        var claims = new List<Claim>
+        {
+            new Claim(ClaimTypes.Name, Model.UserName)
+        };
+
+        // Adiciona as roles como claims
+        foreach (var role in roles)
+        {
+            claims.Add(new Claim(ClaimTypes.Role, role));
+        }
+
+        // Cria a identidade e o principal
+        var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+        var principal = new ClaimsPrincipal(identity);
+
+        // Notifica o AuthenticationStateProvider sobre a mudança de autenticação
+        var authStateProvider = (CustomAuthenticationStateProvider)AuthenticationStateProvider;
+        authStateProvider.NotifyUserAuthentication(principal);
+
+        // Redireciona para a página inicial
+        navigationManager.NavigateTo("/DashBoard");
+    }
+}
