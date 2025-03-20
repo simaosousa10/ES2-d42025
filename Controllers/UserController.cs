@@ -2,6 +2,7 @@
 
 using ESIID42025.Data;
 using ESIID42025.Models;
+using Microsoft.AspNetCore.Identity;
 
 namespace ESIID42025.Controllers;
 
@@ -12,23 +13,23 @@ using Microsoft.EntityFrameworkCore;
 [ApiController]
 public class UserController : ControllerBase
 {
-    private readonly ApplicationDbContext _context;
+    private readonly UserManager<User> _userManager;
 
-    public UserController(ApplicationDbContext context)
+    public UserController(UserManager<User> userManager)
     {
-        _context = context;
+        _userManager = userManager;
     }
 
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<User>>> GetUsers()
+    public ActionResult<IEnumerable<User>> GetUsers()
     {
-        return await _context.Users.ToListAsync();
+        return _userManager.Users.ToList();
     }
-    
+
     [HttpGet("{id}")]
-    public async Task<ActionResult<User>> GetUser(int id)
+    public async Task<ActionResult<User>> GetUser(string id)
     {
-        var user = await _context.Users.FindAsync(id);
+        var user = await _userManager.FindByIdAsync(id);
         if (user == null)
         {
             return NotFound();
@@ -36,36 +37,26 @@ public class UserController : ControllerBase
         return user;
     }
 
-    [HttpPost]
-    public async Task<ActionResult<User>> PostUser(User user)
+    [HttpPost("register")]
+    public async Task<ActionResult> Register([FromBody] User userModel, string password)
     {
-        _context.Users.Add(user);
-        await _context.SaveChangesAsync();
-        return CreatedAtAction(nameof(GetUser), new { id = user.Id }, user);
-    }
-
-    [HttpPut("{id}")]
-    public async Task<IActionResult> PutUser(int id, User user)
-    {
-        if (id != user.Id)
+        var result = await _userManager.CreateAsync(userModel, password);
+        if (result.Succeeded)
         {
-            return BadRequest();
+            return Ok("Utilizador criado com sucesso!");
         }
-        _context.Entry(user).State = EntityState.Modified;
-        await _context.SaveChangesAsync();
-        return NoContent();
+        return BadRequest(result.Errors);
     }
 
     [HttpDelete("{id}")]
-    public async Task<IActionResult> DeleteUser(int id)
+    public async Task<IActionResult> DeleteUser(string id)
     {
-        var user = await _context.Users.FindAsync(id);
+        var user = await _userManager.FindByIdAsync(id);
         if (user == null)
         {
             return NotFound();
         }
-        _context.Users.Remove(user);
-        await _context.SaveChangesAsync();
+        await _userManager.DeleteAsync(user);
         return NoContent();
     }
 }

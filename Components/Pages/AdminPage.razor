@@ -1,0 +1,36 @@
+﻿@page "/admin"
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager Navigation
+
+<h3>Admin Page</h3>
+
+@if (!isAdmin)
+{
+    <p>You do not have permission to view this page.</p>
+}
+else
+{
+    <p>Welcome, Admin! Only users with the Admin role can see this page.</p>
+}
+
+@code {
+    private bool isAdmin = false;
+
+    // Este método verifica se o usuário tem a role "Admin"
+    protected override async Task OnInitializedAsync()
+    {
+        // Obtém o estado de autenticação do usuário
+        var state = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = state.User;
+
+        // Verifica se o usuário está autenticado e se tem a role "Admin"
+        isAdmin = user.IsInRole("Admin");
+
+        if (!isAdmin)
+        {
+            // Se o usuário não for "Admin", redireciona para a página inicial ou outra
+            Navigation.NavigateTo("/"); // Altere conforme necessário
+        }
+    }
+}

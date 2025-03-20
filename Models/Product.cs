@@ -21,4 +21,5 @@ public class Product
     // Navigation Property
     public ICollection<Price> Prices { get; set; }
     public ICollection<StoreProd> StoreProducts { get; set; }
+    public ICollection<Image> Images { get; set; }
 }

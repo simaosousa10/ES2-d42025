@@ -1,31 +1,32 @@
-﻿using ESIID42025.Models;
+﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using ESIID42025.Models;
 
 namespace ESIID42025.Data;
 
-public class ApplicationDbContext : DbContext
+public class ApplicationDbContext : IdentityDbContext<User, IdentityRole<int>, int>  // Usa User do Identity
 {
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
         : base(options)
     {
     }
-    
-    public DbSet<User> Users { get; set; }
+
     public DbSet<Message> Messages { get; set; }
     public DbSet<PriceConfirmation> PriceConfirmations { get; set; }
-    public DbSet<Email> Emails { get; set; }
     public DbSet<Report> Reports { get; set; }
     public DbSet<Price> Prices { get; set; }
     public DbSet<Store> Stores { get; set; }
     public DbSet<Category> Categories { get; set; }
     public DbSet<Product> Products { get; set; }
+    public DbSet<Image> Images { get; set; } 
     public DbSet<StoreProd> StoreProducts { get; set; }
-    
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        base.OnModelCreating(modelBuilder);
-        
-         // Composite Primary Key for StoreProd
+        base.OnModelCreating(modelBuilder); // ⚠ IMPORTANTE: Chamar a base para configurar Identity!
+
+        // Composite Primary Key for StoreProd
         modelBuilder.Entity<StoreProd>()
             .HasKey(sp => new { sp.StoreID, sp.ProductID });
 
@@ -36,22 +37,16 @@ public class ApplicationDbContext : DbContext
             .HasForeignKey(m => m.UserID)
             .OnDelete(DeleteBehavior.Cascade);
 
+        modelBuilder.Entity<Price>()
+            .HasOne(p => p.User)
+            .WithMany(u => u.Prices)
+            .HasForeignKey(p => p.UserID)
+            .OnDelete(DeleteBehavior.Cascade);
+
         modelBuilder.Entity<PriceConfirmation>()
             .HasOne(pc => pc.User)
             .WithMany(u => u.PriceConfirmations)
             .HasForeignKey(pc => pc.UserID)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        modelBuilder.Entity<PriceConfirmation>()
-            .HasOne(pc => pc.Price)
-            .WithMany(p => p.PriceConfirmations)
-            .HasForeignKey(pc => pc.PriceID)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        modelBuilder.Entity<Email>()
-            .HasOne(e => e.User)
-            .WithMany(u => u.Emails)
-            .HasForeignKey(e => e.UserID)
             .OnDelete(DeleteBehavior.Cascade);
 
         modelBuilder.Entity<Report>()
@@ -72,12 +67,6 @@ public class ApplicationDbContext : DbContext
             .HasForeignKey(p => p.ProductID)
             .OnDelete(DeleteBehavior.Cascade);
 
-        modelBuilder.Entity<Price>()
-            .HasOne(p => p.User)
-            .WithMany(u => u.Prices)
-            .HasForeignKey(p => p.UserID)
-            .OnDelete(DeleteBehavior.Cascade);
-
         modelBuilder.Entity<Store>()
             .HasOne(s => s.Report)
             .WithMany(r => r.Stores)
@@ -95,7 +84,11 @@ public class ApplicationDbContext : DbContext
             .WithMany(c => c.Products)
             .HasForeignKey(p => p.CategoryID)
             .OnDelete(DeleteBehavior.Cascade);
-        
-        
+
+        modelBuilder.Entity<Image>()
+            .HasOne(i => i.Product)
+            .WithMany(p => p.Images)
+            .HasForeignKey(i => i.ProductId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }
