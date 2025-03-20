@@ -5,7 +5,8 @@ using ESIID42025.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
-
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Components.Authorization; // Adicionar para suporte a cookies de autenticação
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,23 +14,45 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
+// Configuração do DbContext com PostgreSQL
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"))
 );
 
-builder.Services.AddIdentity<User, IdentityRole<int>>(options => 
-        options.SignIn.RequireConfirmedAccount = true)
+// Configuração do Identity
+builder.Services.AddIdentity<User, IdentityRole<int>>(options =>
+    {
+        options.SignIn.RequireConfirmedAccount = false; // Requer confirmação de email
+        options.Password.RequireDigit = true;
+        options.Password.RequireLowercase = true;
+        options.Password.RequireUppercase = true;
+        options.Password.RequireNonAlphanumeric = true;
+        options.Password.RequiredLength = 8;
+    })
     .AddRoles<IdentityRole<int>>()
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddDefaultTokenProviders();
 
+// Adicionar suporte a cookies de autenticação
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        options.Cookie.Name = "auth_cookie"; // Nome do cookie
+        options.LoginPath = "/login"; // Página de login
+        options.Cookie.MaxAge = TimeSpan.FromMinutes(30);
+        options.LogoutPath = "/logout"; // Página de logout
+        options.AccessDeniedPath = "/access-denied"; // Página de acesso negado
+    });
+builder.Services.AddAuthorization();
+builder.Services.AddCascadingAuthenticationState();
 
 // Adicionar controllers de API
 builder.Services.AddControllers();
 
+// Adicionar suporte a Razor Pages
 builder.Services.AddRazorPages();
 
-// Adicionar serviços do Swagger
+// Configuração do Swagger
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
@@ -41,17 +64,22 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
+// Configuração do HttpClient
 builder.Services.AddHttpClient();
 builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri("https://localhost:44372") });
 
+builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthenticationStateProvider>();
+
 var app = builder.Build();
 
+// Criação de roles e usuário admin padrão (opcional)
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
     var roleManager = services.GetRequiredService<RoleManager<IdentityRole<int>>>();
     var userManager = services.GetRequiredService<UserManager<User>>();
 
+    // Cria roles padrão (Admin, User, UserManager)
     string[] roles = { "Admin", "User", "UserManager" };
     foreach (var role in roles)
     {
@@ -61,15 +89,15 @@ using (var scope = app.Services.CreateScope())
         }
     }
 
-    // Criar um admin por padrão (opcional)
+    // Cria um usuário admin padrão (opcional)
     string adminEmail = "admin@example.com";
     string adminPassword = "Admin@123";
     string adminName = "Admin";
-    
+
     var adminUser = await userManager.FindByEmailAsync(adminEmail);
     if (adminUser == null)
     {
-        var newAdmin = new User { UserName = adminEmail, Email = adminEmail, Name = "Admin" };
+        var newAdmin = new User { UserName = adminEmail, Email = adminEmail, Name = adminName };
         var result = await userManager.CreateAsync(newAdmin, adminPassword);
         if (result.Succeeded)
         {
@@ -100,7 +128,8 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
 
-app.UseAuthentication();
+// Adicionar middlewares de autenticação e autorização
+app.UseAuthentication(); // Certifica-te de que isto está antes do UseAuthorization
 app.UseAuthorization();
 
 app.UseAntiforgery();
