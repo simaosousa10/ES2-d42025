@@ -10,7 +10,7 @@ public class PriceConfirmation
     public DateTime Confirmation_DateTime { get; set; }
 
     // Foreign Keys
-    public int UserID { get; set; }
+    public string UserID { get; set; }
     public User User { get; set; }
 
     public int PriceID { get; set; }

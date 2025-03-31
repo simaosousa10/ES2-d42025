@@ -5,7 +5,7 @@ using ESIID42025.Models;
 
 namespace ESIID42025.Data;
 
-public class ApplicationDbContext : IdentityDbContext<User, IdentityRole<int>, int>  // Usa User do Identity
+public class ApplicationDbContext : IdentityDbContext<User>  // Usa User do Identity
 {
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
         : base(options)
