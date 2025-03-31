@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Identity;
 
 namespace ESIID42025.Models;
 
-public class User : IdentityUser<int>
+public class User : IdentityUser
 {
     public string Name { get; set; }
     public DateTime RegisterDate { get; set; }

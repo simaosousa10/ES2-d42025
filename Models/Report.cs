@@ -12,7 +12,7 @@ public class Report
     public DateTime Sent_Date { get; set; }
 
     // Foreign Key
-    public int UserID { get; set; }
+    public string UserID { get; set; }
     public User User { get; set; }
     
     // Navigation Property

@@ -20,7 +20,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 );
 
 // Configuração do Identity
-builder.Services.AddIdentity<User, IdentityRole<int>>(options =>
+builder.Services.AddIdentity<User, IdentityRole>(options =>
     {
         options.SignIn.RequireConfirmedAccount = false; // Requer confirmação de email
         options.Password.RequireDigit = true;
@@ -29,7 +29,7 @@ builder.Services.AddIdentity<User, IdentityRole<int>>(options =>
         options.Password.RequireNonAlphanumeric = true;
         options.Password.RequiredLength = 8;
     })
-    .AddRoles<IdentityRole<int>>()
+    .AddRoles<IdentityRole>()
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddDefaultTokenProviders();
 
@@ -76,7 +76,7 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
-    var roleManager = services.GetRequiredService<RoleManager<IdentityRole<int>>>();
+    var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
     var userManager = services.GetRequiredService<UserManager<User>>();
 
     // Cria roles padrão (Admin, User, UserManager)
@@ -85,7 +85,7 @@ using (var scope = app.Services.CreateScope())
     {
         if (!await roleManager.RoleExistsAsync(role))
         {
-            await roleManager.CreateAsync(new IdentityRole<int>(role));
+            await roleManager.CreateAsync(new IdentityRole(role));
         }
     }
 

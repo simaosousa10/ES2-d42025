@@ -17,7 +17,7 @@ public class Price
     public int ProductID { get; set; }
     public Product Product { get; set; }
 
-    public int UserID { get; set; }
+    public string UserID { get; set; }
     public User User { get; set; }
     
     // Navigation Property
