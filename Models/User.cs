@@ -5,8 +5,7 @@ namespace ESIID42025.Models;
 
 public class User : IdentityUser
 {
-    public string Name { get; set; }
-    public DateTime RegisterDate { get; set; }
+    public string? Name { get; set; }
     
     // Navigation Properties
     public ICollection<Message> Messages { get; set; }

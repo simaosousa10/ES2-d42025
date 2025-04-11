@@ -1,4 +1,5 @@
 using ESIID42025.Components;
+using ESIID42025.Components.Account;
 using ESIID42025.Data;
 using ESIID42025.Models;
 
@@ -6,7 +7,8 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Components.Authorization; // Adicionar para suporte a cookies de autenticação
+using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.AspNetCore.Components.Server; // Adicionado para ServerAuthenticationStateProvider
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,13 +18,26 @@ builder.Services.AddRazorComponents()
 
 // Configuração do DbContext com PostgreSQL
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"))
-);
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Configuração do Identity
-builder.Services.AddIdentity<User, IdentityRole>(options =>
+// Configuração do Identity - Modificado para usar o padrão do novo projeto
+builder.Services.AddCascadingAuthenticationState();
+builder.Services.AddScoped<IdentityUserAccessor>();
+builder.Services.AddScoped<IdentityRedirectManager>(); // Adicionado para resolver o erro
+builder.Services.AddScoped<AuthenticationStateProvider, ServerAuthenticationStateProvider>(); // Alterado de Custom para Server
+
+builder.Services.AddAuthorization();
+builder.Services.AddAuthentication(options =>
     {
-        options.SignIn.RequireConfirmedAccount = false; // Requer confirmação de email
+        options.DefaultScheme = IdentityConstants.ApplicationScheme;
+        options.DefaultSignInScheme = IdentityConstants.ExternalScheme;
+    })
+    .AddIdentityCookies();
+
+// Configuração do Identity Core - Modificado para ficar igual ao novo projeto
+builder.Services.AddIdentityCore<User>(options => 
+    {
+        options.SignIn.RequireConfirmedAccount = false;
         options.Password.RequireDigit = true;
         options.Password.RequireLowercase = true;
         options.Password.RequireUppercase = true;
@@ -31,20 +46,8 @@ builder.Services.AddIdentity<User, IdentityRole>(options =>
     })
     .AddRoles<IdentityRole>()
     .AddEntityFrameworkStores<ApplicationDbContext>()
+    .AddSignInManager() // Adicionado
     .AddDefaultTokenProviders();
-
-// Adicionar suporte a cookies de autenticação
-builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-    .AddCookie(options =>
-    {
-        options.Cookie.Name = "auth_cookie"; // Nome do cookie
-        options.LoginPath = "/login"; // Página de login
-        options.Cookie.MaxAge = TimeSpan.FromMinutes(30);
-        options.LogoutPath = "/logout"; // Página de logout
-        options.AccessDeniedPath = "/access-denied"; // Página de acesso negado
-    });
-builder.Services.AddAuthorization();
-builder.Services.AddCascadingAuthenticationState();
 
 // Adicionar controllers de API
 builder.Services.AddControllers();
@@ -68,7 +71,7 @@ builder.Services.AddSwaggerGen(c =>
 builder.Services.AddHttpClient();
 builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri("https://localhost:44372") });
 
-builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthenticationStateProvider>();
+builder.Services.AddScoped<IEmailSender<User>, IdentityNoOpEmailSender>();
 
 var app = builder.Build();
 
@@ -118,7 +121,6 @@ if (app.Environment.IsDevelopment())
 else
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
 
@@ -128,13 +130,15 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
 
-// Adicionar middlewares de autenticação e autorização
-app.UseAuthentication(); // Certifica-te de que isto está antes do UseAuthorization
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.UseAntiforgery();
 
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
+
+// Adicionar endpoints de Identity - Necessário para as páginas de Account funcionarem
+app.MapAdditionalIdentityEndpoints();
 
 app.Run();
