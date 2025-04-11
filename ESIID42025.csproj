@@ -25,6 +25,9 @@
     <ItemGroup>
       <_ContentIncludedByDefault Remove="Components\Pages\Auth\Login.razor" />
       <_ContentIncludedByDefault Remove="Components\Pages\Auth\Logout.razor" />
+      <_ContentIncludedByDefault Remove="Components\Pages\Account\AccessDenied.razor" />
+      <_ContentIncludedByDefault Remove="Components\Pages\Account\Login.razor" />
+      <_ContentIncludedByDefault Remove="Components\Pages\Account\Logout.razor" />
     </ItemGroup>
 
     <ItemGroup>
