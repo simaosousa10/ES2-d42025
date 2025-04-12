@@ -1,0 +1,62 @@
+﻿@page "/edit-product"
+@page "/edit-product/{Id:int}"
+@inject IProductService ProductService
+@inject NavigationManager NavigationManager
+@rendermode InteractiveServer
+
+
+@if (Id is null)
+{
+    <PageTitle>Add a New Product</PageTitle>
+    <h3>Add a New Product</h3>
+}
+else
+{
+    <PageTitle>Edit "@CurrentProduct.Name"</PageTitle>
+    <h3>Edit "@CurrentProduct.Name"</h3>
+}
+
+<EditForm Model="CurrentProduct" OnSubmit="HandleSubmit">
+    <div>
+        <label for="name">Name</label>
+        <InputText id="name" @bind-Value="CurrentProduct.Name" class="form-control"/>
+    </div>
+    <div>
+        <label for="description">Description</label>
+        <InputText id="description" @bind-Value="CurrentProduct.Description" class="form-control"/>
+    </div>
+    <button type="submit" class="bnt btn-primary">Save</button>
+</EditForm>
+
+@code {
+    [Parameter] public int? Id { get; set; }
+    public Product CurrentProduct { get; set; } = new();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Id is not null)
+        {
+            var product = await ProductService.GetProductByIdAsync((int)Id);
+            if (product is not null)
+                CurrentProduct = product;
+
+        }
+    }
+
+    async Task HandleSubmit()
+    {
+        if (Id is not null)
+        {
+            //Update
+            await ProductService.UpdateProductAsync(CurrentProduct, (int)Id);
+            NavigationManager.NavigateTo("/products");
+        }
+        else
+        {
+            //Add
+            await ProductService.AddProductAsync(CurrentProduct);
+            NavigationManager.NavigateTo("/products");
+        }
+    }
+
+}

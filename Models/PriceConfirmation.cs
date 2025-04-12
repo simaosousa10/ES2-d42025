@@ -6,7 +6,6 @@ public class PriceConfirmation
 {
     [Key]
     public int ID { get; set; }
-    
     public DateTime Confirmation_DateTime { get; set; }
 
     // Foreign Keys

@@ -1,0 +1,68 @@
+﻿@page "/products"
+@inject IProductService ProductService;
+@inject NavigationManager NavigationManager
+@rendermode @(new InteractiveServerRenderMode(prerender: false));
+
+<PageTitle>Products</PageTitle>
+<h3>Products</h3>
+
+@if (products.Count == 0)
+{
+    <p><em>Loading Products...</em></p>
+}
+else
+{
+    <table class="table">
+        <thead>
+        <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Description</th>
+            <th>Registration_Date</th>
+            <th>Current Price</th>
+            <th></th>
+        </tr>
+        </thead>
+        <tbody>
+        @foreach (var product in products)
+        {
+            <tr>
+                <td>@product.Id</td>
+                <td>@product.Name</td>
+                <td>@product.Description</td>
+                <td>@product.RegistrationDate.ToString("dd/MM/yyyy HH:mm:ss")</td>
+                <td>@(product.CurrentPrice?.ToString("C2"))</td>
+                <td><button class="btn btn-primary" @onclick="@(() => EditProduct(product.Id))">Edit</button></td>
+                <td><button class="btn btn-danger" @onclick="@(() => DeleteProduct(product.Id))">Delete</button></td>
+            </tr>
+        }
+        </tbody>
+    </table>
+    <button @onclick="AddProduct" class="btn btn-primary">Add a new Product</button>
+}
+
+
+@code {
+    List<ProductService.ProductWithPriceDto> products = new List<ProductService.ProductWithPriceDto>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        products = await ProductService.GetAllProductsWithCurrentPriceAsync();
+    }
+    
+    void EditProduct(int id)
+    {
+        NavigationManager.NavigateTo($"/edit-product/{id}");
+    }
+    
+    void AddProduct()
+    {
+        NavigationManager.NavigateTo("/edit-product");
+    }
+    
+    async Task DeleteProduct(int id)
+    {
+        await ProductService.DeleteProductAsync(id);
+        products = await ProductService.GetAllProductsWithCurrentPriceAsync();
+    }
+}
