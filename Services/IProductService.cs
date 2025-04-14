@@ -13,5 +13,5 @@ public interface IProductService
     Task AddStoreToProductAsync(int productId, StoreProd storeProduct);
     Task AddImageToProductAsync(int productId, Image image);
     Task AddPriceToProductAsync(int productId, Price price);
-
+    Task<Product> GetProductWithStoresAndImagesAsync(int id);
 }

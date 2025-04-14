@@ -27,6 +27,7 @@ public class ProductService : IProductService
     {
         var products = await _context.Products
             .Include(p => p.Prices)
+            .Include(p => p.Category)
             .ToListAsync();
         
         return products.Select(p => new ProductWithPriceDto
@@ -35,7 +36,8 @@ public class ProductService : IProductService
             Name = p.Name,
             Description = p.Description,
             RegistrationDate = p.Registration_Date,
-            CurrentPrice = p.Prices.OrderByDescending(pr => pr.Date).FirstOrDefault()?.Value
+            CurrentPrice = p.Prices.OrderByDescending(pr => pr.Date).FirstOrDefault()?.Value,
+            CategoryName = p.Category?.Name
         }).ToList();
     }
 
@@ -45,6 +47,7 @@ public class ProductService : IProductService
             .Include(p => p.Prices)
             .Include(p => p.StoreProducts)
             .Include(p => p.Images)
+            .Include(p => p.Category)
             .FirstOrDefaultAsync(p => p.ID == id);
     }
 
@@ -142,14 +145,27 @@ public class ProductService : IProductService
         await _context.SaveChangesAsync();
     }
     
-
+    public async Task<Product> GetProductWithStoresAndImagesAsync(int id)
+    {
+        return await _context.Products
+                   .Include(p => p.StoreProducts)
+                   .ThenInclude(sp => sp.Store)
+                   .Include(p => p.Images)
+                   .Include(p => p.Prices)
+                   .ThenInclude(p => p.Store)
+                   .Include(p => p.Category) // Se precisar da categoria
+                   .FirstOrDefaultAsync(p => p.ID == id) 
+               ?? throw new KeyNotFoundException($"Product with id {id} not found");
+    }
+    
     public class ProductWithPriceDto
     {
         public int Id { get; set; }
         public string Name { get; set; }
         public string Description { get; set; }
         public DateTime RegistrationDate { get; set; }
-        public double? CurrentPrice { get; set; }  // Alterado para double?
+        public double? CurrentPrice { get; set; }
+        public string CategoryName { get; set; }
     }
     
 }

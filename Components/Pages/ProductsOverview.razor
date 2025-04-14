@@ -18,8 +18,9 @@ else
             <th>ID</th>
             <th>Name</th>
             <th>Description</th>
+            <th>Category</th>
             <th>Registration_Date</th>
-            <th>Current Price</th>
+            <th>Best Price</th>
             <th></th>
         </tr>
         </thead>
@@ -30,8 +31,10 @@ else
                 <td>@product.Id</td>
                 <td>@product.Name</td>
                 <td>@product.Description</td>
+                <td>@product.CategoryName</td>
                 <td>@product.RegistrationDate.ToString("dd/MM/yyyy HH:mm:ss")</td>
                 <td>@(product.CurrentPrice?.ToString("C2"))</td>
+                <td><button class="btn btn-primary" @onclick="@(() => MoreInfo(product.Id))">More Info</button></td>
                 <td><button class="btn btn-primary" @onclick="@(() => EditProduct(product.Id))">Edit</button></td>
                 <td><button class="btn btn-danger" @onclick="@(() => DeleteProduct(product.Id))">Delete</button></td>
             </tr>
@@ -58,6 +61,11 @@ else
     void AddProduct()
     {
         NavigationManager.NavigateTo("/edit-product");
+    }
+    
+    void MoreInfo(int id)
+    {
+        NavigationManager.NavigateTo($"/moreinfo-product/{id}");
     }
     
     async Task DeleteProduct(int id)

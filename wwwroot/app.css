@@ -49,3 +49,31 @@ h1:focus {
 .darker-border-checkbox.form-check-input {
     border-color: #929292;
 }
+
+.product-image-card {
+    transition: transform 0.3s ease;
+    cursor: pointer;
+}
+
+.product-image-card:hover {
+    transform: scale(1.03);
+}
+
+.store-table {
+    font-size: 0.9rem;
+}
+
+.store-table th {
+    background-color: #f8f9fa;
+    position: sticky;
+    top: 0;
+}
+
+.img-fluid.rounded {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.img-fluid.rounded:hover {
+    transform: scale(1.03);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
