@@ -13,7 +13,7 @@ public class Store
     public DateTime Registration_Date { get; set; }
 
     // Foreign Key
-    public int ReportID { get; set; }
+    public int? ReportID { get; set; }
     public Report Report { get; set; }
 
     // Navigation Property

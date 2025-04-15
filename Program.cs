@@ -21,6 +21,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddScoped<IProductService, ProductService>();
+builder.Services.AddScoped<JsInteropService>();
 
 // Configuração do Identity - Modificado para usar o padrão do novo projeto
 builder.Services.AddCascadingAuthenticationState();

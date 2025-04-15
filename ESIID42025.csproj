@@ -7,6 +7,7 @@
     </PropertyGroup>
 
     <ItemGroup>
+      <PackageReference Include="FontAwesome" Version="4.7.0" />
       <PackageReference Include="Microsoft.AspNetCore.Http.Abstractions" Version="2.3.0" />
       <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.10" />
       <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.3" />
@@ -28,10 +29,6 @@
       <_ContentIncludedByDefault Remove="Components\Pages\Account\AccessDenied.razor" />
       <_ContentIncludedByDefault Remove="Components\Pages\Account\Login.razor" />
       <_ContentIncludedByDefault Remove="Components\Pages\Account\Logout.razor" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <None Include="wwwroot\images\avatar.png" />
     </ItemGroup>
 
 </Project>

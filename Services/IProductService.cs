@@ -14,4 +14,21 @@ public interface IProductService
     Task AddImageToProductAsync(int productId, Image image);
     Task AddPriceToProductAsync(int productId, Price price);
     Task<Product> GetProductWithStoresAndImagesAsync(int id);
+    
+    Task<List<Category>> GetAllCategoriesAsync();
+    Task<List<Category>> SearchCategoriesAsync(string name);
+    Task<Category> AddCategoryAsync(Category category);
+    Task<Category> GetCategoryByIdAsync(int id);
+    
+    Task DeleteImageAsync(int imageId);
+    Task AddImageToProductAsync(int productId, string imageUrl);
+    
+    Task<List<Store>> GetAllStoresAsync();
+    Task AddStoreToProductAsync(int productId, int storeId);
+    Task RemoveStoreFromProductAsync(int productId, int storeId);
+    Task<Store> AddNewStoreAsync(Store store);
+    
+    Task AddPriceAsync(Price price);
+    Task AddPriceConfirmationAsync(int priceId, string userId);
+    Task<List<PriceConfirmation>> GetConfirmationsForPriceAsync(int priceId);
 }

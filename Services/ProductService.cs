@@ -53,6 +53,8 @@ public class ProductService : IProductService
 
     public async Task AddProductAsync(Product product)
     {
+        product.Registration_Date = DateTime.UtcNow;
+        
         _context.Products.Add(product);
         await _context.SaveChangesAsync();
     }
@@ -65,6 +67,7 @@ public class ProductService : IProductService
             DBproduct.Name = product.Name;
             DBproduct.Description = product.Description;
             DBproduct.Registration_Date = product.Registration_Date;
+            DBproduct.CategoryID = product.CategoryID;
             DBproduct.Prices = product.Prices;
             DBproduct.StoreProducts = product.StoreProducts;
             DBproduct.Images = product.Images;
@@ -140,7 +143,6 @@ public class ProductService : IProductService
         // Configura o relacionamento e data
         price.ID = productId;
         price.Date = DateTime.UtcNow; // Garante a data atual
-        
         product.Prices.Add(price);
         await _context.SaveChangesAsync();
     }
@@ -152,11 +154,148 @@ public class ProductService : IProductService
                    .ThenInclude(sp => sp.Store)
                    .Include(p => p.Images)
                    .Include(p => p.Prices)
-                   .ThenInclude(p => p.Store)
+                   .ThenInclude(p => p.PriceConfirmations)
                    .Include(p => p.Category) // Se precisar da categoria
                    .FirstOrDefaultAsync(p => p.ID == id) 
                ?? throw new KeyNotFoundException($"Product with id {id} not found");
     }
+
+    
+    
+    
+    
+    
+    public async Task<List<Category>> GetAllCategoriesAsync()
+    {
+        return await _context.Categories.ToListAsync();
+    }
+
+    public async Task<List<Category>> SearchCategoriesAsync(string name)
+    {
+        return await _context.Categories
+            .Where(c => c.Name.Contains(name))
+            .ToListAsync();
+    }
+
+    public async Task<Category> AddCategoryAsync(Category category)
+    {
+        category.Name = NormalizeCategoryName(category.Name);
+        _context.Categories.Add(category);
+        await _context.SaveChangesAsync();
+        return category;
+    }
+
+    public async Task<Category> GetCategoryByIdAsync(int id)
+    {
+        return await _context.Categories.FindAsync(id);
+    }
+
+    private string NormalizeCategoryName(string name)
+    {
+        if (string.IsNullOrEmpty(name))
+            return name;
+
+        name = name.ToLower();
+        return char.ToUpper(name[0]) + name.Substring(1);
+    }
+    
+    
+    
+    
+    
+    public async Task DeleteImageAsync(int imageId)
+    {
+        var image = await _context.Images.FindAsync(imageId);
+        if (image != null)
+        {
+            _context.Images.Remove(image);
+            await _context.SaveChangesAsync();
+        }
+    }
+
+    public async Task AddImageToProductAsync(int productId, string imageUrl)
+    {
+        var image = new Image
+        {
+            UrlImage = imageUrl,
+            ProductId = productId
+        };
+    
+        _context.Images.Add(image);
+        await _context.SaveChangesAsync();
+    }
+    
+    
+    
+    
+    public async Task<List<Store>> GetAllStoresAsync()
+    {
+        return await _context.Stores.ToListAsync();
+    }
+
+    public async Task AddStoreToProductAsync(int productId, int storeId)
+    {
+        var existing = await _context.StoreProducts
+            .FirstOrDefaultAsync(sp => sp.ProductID == productId && sp.StoreID == storeId);
+    
+        if (existing == null)
+        {
+            _context.StoreProducts.Add(new StoreProd
+            {
+                ProductID = productId,
+                StoreID = storeId
+            });
+            await _context.SaveChangesAsync();
+        }
+    }
+
+    public async Task RemoveStoreFromProductAsync(int productId, int storeId)
+    {
+        var storeProd = await _context.StoreProducts
+            .FirstOrDefaultAsync(sp => sp.ProductID == productId && sp.StoreID == storeId);
+    
+        if (storeProd != null)
+        {
+            _context.StoreProducts.Remove(storeProd);
+            await _context.SaveChangesAsync();
+        }
+    }
+
+    public async Task<Store> AddNewStoreAsync(Store store)
+    {
+        store.Registration_Date = DateTime.UtcNow;
+        _context.Stores.Add(store);
+        await _context.SaveChangesAsync();
+        return store;
+    }
+    
+    public async Task AddPriceAsync(Price price)
+    {
+        price.Date = DateTime.UtcNow;
+        _context.Prices.Add(price);
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task AddPriceConfirmationAsync(int priceId, string userId)
+    {
+        var confirmation = new PriceConfirmation
+        {
+            PriceID = priceId,
+            UserID = userId,
+            Confirmation_DateTime = DateTime.UtcNow
+        };
+    
+        _context.PriceConfirmations.Add(confirmation);
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task<List<PriceConfirmation>> GetConfirmationsForPriceAsync(int priceId)
+    {
+        return await _context.PriceConfirmations
+            .Where(pc => pc.PriceID == priceId)
+            .ToListAsync();
+    }
+    
     
     public class ProductWithPriceDto
     {
