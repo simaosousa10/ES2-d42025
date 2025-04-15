@@ -7,10 +7,12 @@ namespace ESIID42025.Services;
 public class ProductService : IProductService
 {
     private readonly ApplicationDbContext _context;
+    private readonly IPriceService _priceService;
 
-    public ProductService(ApplicationDbContext context)
+    public ProductService(ApplicationDbContext context, IPriceService priceService)
     {
         _context = context;
+        _priceService = priceService;
     }
     
     public async Task<List<Product>> GetAllProductsAsync()
@@ -133,18 +135,7 @@ public class ProductService : IProductService
 
     public async Task AddPriceToProductAsync(int productId, Price price)
     {
-        var product = await _context.Products
-            .Include(p => p.Prices)
-            .FirstOrDefaultAsync(p => p.ID == productId);
-
-        if (product == null)
-            throw new KeyNotFoundException($"Product with id {productId} not found");
-
-        // Configura o relacionamento e data
-        price.ID = productId;
-        price.Date = DateTime.UtcNow; // Garante a data atual
-        product.Prices.Add(price);
-        await _context.SaveChangesAsync();
+        await _priceService.AddPriceAsync(productId, price);
     }
     
     public async Task<Product> GetProductWithStoresAndImagesAsync(int id)
