@@ -12,7 +12,7 @@ public class Product
     public DateTime Registration_Date { get; set; }
 
     // Foreign Keys
-    public int ReportID { get; set; }
+    public int? ReportID { get; set; }
     public Report Report { get; set; }
 
     public int CategoryID { get; set; }

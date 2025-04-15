@@ -1,0 +1,181 @@
+﻿@page "/edit-product"
+@page "/edit-product/{Id:int}"
+@inject IProductService ProductService
+@inject NavigationManager NavigationManager
+@rendermode InteractiveServer
+
+@if (Id is null)
+{
+    <PageTitle>Add a New Product</PageTitle>
+    <h3>Add a New Product</h3>
+}
+else
+{
+    <PageTitle>Edit "@CurrentProduct.Name"</PageTitle>
+    <h3>Edit "@CurrentProduct.Name"</h3>
+}
+
+<EditForm Model="CurrentProduct" OnValidSubmit="HandleSubmit">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+    
+    <div class="mb-3">
+        <label for="name" class="form-label">Name</label>
+        <InputText id="name" @bind-Value="CurrentProduct.Name" class="form-control"/>
+        <ValidationMessage For="@(() => CurrentProduct.Name)" />
+    </div>
+    
+    <div class="mb-3">
+        <label for="description" class="form-label">Description</label>
+        <InputTextArea id="description" @bind-Value="CurrentProduct.Description" class="form-control"/>
+        <ValidationMessage For="@(() => CurrentProduct.Description)" />
+    </div>
+    
+    <div class="mb-3">
+        <label for="category" class="form-label">Category</label>
+        <InputText id="category" @bind-Value="categoryName" class="form-control" 
+                   @oninput="UpdateCategorySuggestions"/>
+        <ValidationMessage For="@(() => CurrentProduct.CategoryID)" />
+        
+        @if (showCategorySuggestions && categorySuggestions.Any())
+        {
+            <div class="list-group mt-2">
+                @foreach (var suggestion in categorySuggestions)
+                {
+                    <button type="button" class="list-group-item list-group-item-action" 
+                            @onclick="@(() => SelectCategory(suggestion))">
+                        @suggestion.Name
+                    </button>
+                }
+            </div>
+        }
+    </div>
+    
+    @if (showNewCategoryDescription)
+    {
+        <div class="mb-3">
+            <label for="newCategoryDescription" class="form-label">Category Description</label>
+            <InputText id="newCategoryDescription" @bind-Value="newCategoryDescription" class="form-control"/>
+            <small class="text-muted">Please provide a description for the new category</small>
+        </div>
+    }
+    
+    <button type="submit" class="btn btn-primary">Save</button>
+    <button type="button" class="btn btn-secondary ms-2" @onclick="Cancel">Cancel</button>
+</EditForm>
+
+@code {
+    [Parameter] public int? Id { get; set; }
+    public Product CurrentProduct { get; set; } = new();
+    private string categoryName = string.Empty;
+    private List<Category> categorySuggestions = new();
+    private bool showCategorySuggestions = false;
+    private bool showNewCategoryDescription = false;
+    private string newCategoryDescription = string.Empty;
+    private Category? selectedCategory = null;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Id is not null)
+        {
+            CurrentProduct = await ProductService.GetProductByIdAsync((int)Id);
+            if (CurrentProduct.Category != null)
+            {
+                categoryName = CurrentProduct.Category.Name;
+                selectedCategory = CurrentProduct.Category;
+            }
+        }
+    }
+
+    private async Task UpdateCategorySuggestions(ChangeEventArgs e)
+    {
+        categoryName = e.Value?.ToString() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(categoryName))
+        {
+            categorySuggestions.Clear();
+            showCategorySuggestions = false;
+            return;
+        }
+
+        // Normaliza o nome da categoria (primeira letra maiúscula, restante minúscula)
+        categoryName = NormalizeCategoryName(categoryName);
+        
+        // Busca categorias similares
+        categorySuggestions = await ProductService.SearchCategoriesAsync(categoryName);
+        showCategorySuggestions = categorySuggestions.Any();
+        showNewCategoryDescription = false;
+    }
+
+    private void SelectCategory(Category category)
+    {
+        selectedCategory = category;
+        categoryName = category.Name;
+        showCategorySuggestions = false;
+        showNewCategoryDescription = false;
+        CurrentProduct.CategoryID = category.ID;
+    }
+
+    private string NormalizeCategoryName(string name)
+    {
+        if (string.IsNullOrEmpty(name))
+            return name;
+
+        // Converte para minúsculas primeiro
+        name = name.ToLower();
+        
+        // Converte a primeira letra para maiúscula
+        return char.ToUpper(name[0]) + name.Substring(1);
+    }
+
+    private async Task HandleSubmit()
+    {
+        // Se não há categoria selecionada, precisamos criar uma nova
+        if (selectedCategory == null || selectedCategory.Name != categoryName)
+        {
+            // Verifica se a categoria já existe (caso o usuário tenha digitado manualmente)
+            var existingCategory = (await ProductService.SearchCategoriesAsync(categoryName)).FirstOrDefault();
+            
+            if (existingCategory != null)
+            {
+                selectedCategory = existingCategory;
+            }
+            else
+            {
+                if (string.IsNullOrWhiteSpace(newCategoryDescription))
+                {
+                    // Mostra o campo para descrição da nova categoria
+                    showNewCategoryDescription = true;
+                    return;
+                }
+
+                // Cria uma nova categoria
+                var newCategory = new Category
+                {
+                    Name = categoryName,
+                    Description = newCategoryDescription
+                };
+                
+                selectedCategory = await ProductService.AddCategoryAsync(newCategory);
+            }
+        }
+
+        CurrentProduct.CategoryID = selectedCategory.ID;
+
+        if (Id is not null)
+        {
+            await ProductService.UpdateProductAsync(CurrentProduct, (int)Id);
+        }
+        else
+        {
+            CurrentProduct.Registration_Date = DateTime.UtcNow;
+            await ProductService.AddProductAsync(CurrentProduct);
+        }
+        
+        NavigationManager.NavigateTo("/products");
+    }
+
+    private void Cancel()
+    {
+        NavigationManager.NavigateTo("/products");
+    }
+}

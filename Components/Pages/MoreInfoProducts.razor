@@ -1,0 +1,566 @@
+﻿@page "/moreinfo-product/{Id:int}"
+@inject IProductService ProductService
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
+@inject AuthenticationStateProvider AuthProvider
+@rendermode InteractiveServer
+
+<PageTitle>@(product?.Name ?? "Product Details")</PageTitle>
+
+@if (product == null)
+{
+    <div class="alert alert-info">Loading product details...</div>
+}
+else
+{
+    <div class="container mt-4">
+        <h2 class="mb-4">@product.Name</h2>
+        
+        <div class="row">
+            <!-- Card de Lojas - Atualizado -->
+            <div class="col-md-10 mb-4">
+                <div class="card h-100">
+                    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                        <h4><i class="fas fa-store me-2"></i>Available Stores</h4>
+                        <button class="btn btn-sm btn-success" @onclick="ShowAddStoreDialog">
+                            <i class="fas fa-plus me-1"></i>Add Store
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        @if (product.StoreProducts?.Any() == true)
+                        {
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Store</th>
+                                            <th>Location</th>
+                                            <th>Price</th>
+                                            <th>Last Updated</th>
+                                            <th>Confidence</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var storeProduct in product.StoreProducts)
+                                        {
+                                            var latestPrice = product.Prices?
+                                                .Where(p => p.StoreID == storeProduct.StoreID)
+                                                .OrderByDescending(p => p.Date)
+                                                .FirstOrDefault();
+
+                                            var confirmationsCount = latestPrice?.PriceConfirmations?.Count ?? 0;
+
+                                            <tr>
+                                                <td>@storeProduct.Store?.Name</td>
+                                                <td>
+                                                    @if (!string.IsNullOrEmpty(storeProduct.Store?.GoogleMaps_URL))
+                                                    {
+                                                        <a href="@storeProduct.Store.GoogleMaps_URL" target="_blank">
+                                                            @storeProduct.Store?.Location
+                                                        </a>
+                                                    }
+                                                    else
+                                                    {
+                                                        @storeProduct.Store?.Location
+                                                    }
+                                                </td>
+                                                <td>
+                                                    @if (editingPriceStoreId == storeProduct.StoreID)
+                                                    {
+                                                        <div class="input-group" style="max-width: 200px;">
+                                                            <input type="number" step="0.01" 
+                                                                   @bind="editingPriceValue" 
+                                                                   class="form-control" />
+                                                            <div>
+                                                                <button @onclick="@(() => SavePrice(storeProduct.StoreID))" 
+                                                                        class="btn btn-success btn-sm">Save
+                                                                    <i class="fas fa-check"></i>
+                                                                </button>
+                                                                <button @onclick="CancelEditPrice" 
+                                                                        class="btn btn-danger btn-sm">Cancel
+                                                                    <i class="fas fa-times"></i>
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    }
+                                                    else
+                                                    {
+                                                        <div class="d-flex align-items-center">
+                                                            <span>@(latestPrice?.Value.ToString("C2") ?? "N/A")</span>
+                                                            <button @onclick="@(() => EditPrice(storeProduct.StoreID, latestPrice?.Value ?? 0))"
+                                                                    class="btn btn-link p-0 ms-2 text-primary"
+                                                                    style="font-size: 0.9rem; min-width: 20px;">
+                                                                <i class="fas fa-edit"></i>Edit
+                                                            </button>
+                                                        </div>
+                                                    }
+                                                </td>
+                                                <td class="align-middle">@(latestPrice?.Date.ToString("dd/MM/yyyy HH:mm"))</td>
+                                                <td class="align-middle">
+                                                    <div class="confidence-badge @GetConfidenceClass(confirmationsCount)"
+                                                         title="@confirmationsCount confirmation(s)">
+                                                        @confirmationsCount
+                                                    </div>
+                                                </td>
+                                                <td class="align-middle">
+                                                    <button @onclick="@(() => ConfirmPrice(latestPrice?.ID ?? 0))"
+                                                            class="btn btn-outline-success"
+                                                            disabled="@(latestPrice == null)"
+                                                            title="Confirm price">
+                                                        <i class="fas fa-check-circle"></i>Confirm Price
+                                                    </button>
+                                                    <button @onclick="@(() => RemoveStore(storeProduct.StoreID))"
+                                                            class="btn btn-outline-danger"
+                                                            title="Remove store">
+                                                        <i class="fas fa-trash-alt"></i>Delete Store
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="alert alert-warning">No stores available for this product</div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card de Imagens -->
+            <div class="col-md-5 mb-4">
+                <div class="card h-100">
+                    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                        <h4><i class="fas fa-images me-2"></i>Product Images</h4>
+                        <button class="btn btn-sm btn-success" @onclick="ShowAddImageDialog">
+                            <i class="fas fa-plus me-1"></i>Add Image
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        @if (product.Images?.Any() == true)
+                        {
+                            <div class="row">
+                                @foreach (var image in product.Images)
+                                {
+                                    <div class="col-md-6 mb-3 position-relative">
+                                        <img src="@image.UrlImage" 
+                                             class="img-fluid rounded border"
+                                             alt="Product image"
+                                             style="max-height: 200px; width: auto; display: block; margin: 0 auto;">
+                                        <button class="btn btn-danger btn-sm position-absolute top-0 end-0 m-1" 
+                                                @onclick="@(() => DeleteImage(image.Id))">
+                                            <i class="fas fa-trash-alt"></i>X
+                                        </button>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="alert alert-warning">No images available for this product</div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal para adicionar loja -->
+        @if (showAddStoreDialog)
+        {
+            <div class="modal show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5)">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Add Store to Product</h5>
+                            <button type="button" class="btn-close" @onclick="CloseAddStoreDialog"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label class="form-label">Search or Add Store</label>
+                                <input @bind="storeSearchTerm"
+                                       @bind:event="oninput"
+                                       @onfocus="ShowStoreSuggestions"
+                                       class="form-control"
+                                       placeholder="Type store name or location"/>
+
+                                @if (showStoreSuggestions && filteredStores.Any())
+                                {
+                                    <div class="list-group mt-2">
+                                        @foreach (var store in filteredStores)
+                                        {
+                                            <button type="button"
+                                                    class="list-group-item list-group-item-action @(selectedStoreIndex == filteredStores.IndexOf(store) ? "active" : "")"
+                                                    @onclick="() => SelectStore(store)"
+                                                    @onkeydown="(e) => HandleStoreKeyDown(e, store)">
+                                                <div class="d-flex justify-content-between">
+                                                    <div>
+                                                        <strong>@store.Name</strong>
+                                                        <div class="text-muted small">@store.Location</div>
+                                                    </div>
+                                                    @if (!string.IsNullOrEmpty(store.GoogleMaps_URL))
+                                                    {
+                                                        <a href="@store.GoogleMaps_URL" target="_blank" class="text-primary" @onclick:stopPropagation>
+                                                            <i class="fas fa-map-marked-alt"></i>
+                                                        </a>
+                                                    }
+                                                </div>
+                                            </button>
+                                        }
+                                    </div>
+                                }
+                            </div>
+
+                            @if (showNewStoreForm)
+                            {
+                                <div class="mt-4 border-top pt-3">
+                                    <h5>Add New Store</h5>
+                                    <div class="mb-3">
+                                        <label class="form-label">Store Name *</label>
+                                        <InputText @bind-Value="newStore.Name" class="form-control"/>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Location *</label>
+                                        <InputText @bind-Value="newStore.Location" class="form-control"/>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Google Maps URL</label>
+                                        <InputText @bind-Value="newStore.GoogleMaps_URL" class="form-control"/>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" @onclick="CloseAddStoreDialog">Cancel</button>
+                            @if (showNewStoreForm)
+                            {
+                                <button type="button" class="btn btn-primary" @onclick="AddNewStore">Add New Store</button>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <!-- Modal para adicionar nova imagem -->
+        @if (showAddImageDialog)
+        {
+            <div class="modal show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5)">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Add New Image</h5>
+                            <button type="button" class="btn-close" @onclick="CloseAddImageDialog"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label for="imageUrl" class="form-label">Image URL</label>
+                                <input type="text" class="form-control" id="imageUrl" @bind="newImageUrl" />
+                                <small class="form-text text-muted">Enter the full URL of the image</small>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" @onclick="CloseAddImageDialog">Cancel</button>
+                            <button type="button" class="btn btn-primary" @onclick="AddImage">Add Image</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <div class="text-center mt-3">
+            <button @onclick="BackToList" class="btn btn-primary">
+                <i class="fas fa-arrow-left me-2"></i>Back to Products List
+            </button>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+    private Product? product;
+    private bool showAddImageDialog = false;
+    private string newImageUrl = string.Empty;
+    private bool showAddStoreDialog = false;
+    private string storeSearchTerm = string.Empty;
+    private List<Store> allStores = new();
+    private List<Store> filteredStores = new();
+    private bool showStoreSuggestions = false;
+    private int selectedStoreIndex = -1;
+    private bool showNewStoreForm = false;
+    private Store newStore = new();
+    private int? editingPriceStoreId = null;
+    private double editingPriceValue = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadProduct();
+        allStores = await ProductService.GetAllStoresAsync();
+    }
+
+    private async Task LoadProduct()
+    {
+        product = await ProductService.GetProductWithStoresAndImagesAsync(Id);
+        StateHasChanged();
+    }
+
+    private void BackToList() => NavigationManager.NavigateTo("/products");
+
+    private void ShowAddImageDialog()
+    {
+        showAddImageDialog = true;
+        newImageUrl = string.Empty;
+    }
+
+    private void CloseAddImageDialog()
+    {
+        showAddImageDialog = false;
+    }
+
+    private async Task AddImage()
+    {
+        if (!string.IsNullOrWhiteSpace(newImageUrl))
+        {
+            try
+            {
+                await ProductService.AddImageToProductAsync(Id, newImageUrl);
+                await LoadProduct();
+                showAddImageDialog = false;
+            }
+            catch (Exception ex)
+            {
+                await JSRuntime.InvokeVoidAsync("alert", $"Error adding image: {ex.Message}");
+            }
+        }
+        else
+        {
+            await JSRuntime.InvokeVoidAsync("alert", "Please enter a valid image URL");
+        }
+    }
+
+    private async Task DeleteImage(int imageId)
+    {
+        if (await JSRuntime.InvokeAsync<bool>("confirm", "Are you sure you want to delete this image?"))
+        {
+            try
+            {
+                await ProductService.DeleteImageAsync(imageId);
+                await LoadProduct();
+            }
+            catch (Exception ex)
+            {
+                await JSRuntime.InvokeVoidAsync("alert", $"Error deleting image: {ex.Message}");
+            }
+        }
+    }
+
+    private void ShowAddStoreDialog()
+    {
+        showAddStoreDialog = true;
+        storeSearchTerm = string.Empty;
+        showStoreSuggestions = false;
+        showNewStoreForm = false;
+        newStore = new Store();
+    }
+
+    private void CloseAddStoreDialog()
+    {
+        showAddStoreDialog = false;
+    }
+
+    private void ShowStoreSuggestions()
+    {
+        showStoreSuggestions = true;
+        FilterStores();
+    }
+
+    private async Task FilterStores()
+    {
+        if (string.IsNullOrWhiteSpace(storeSearchTerm))
+        {
+            filteredStores = allStores.Take(5).ToList();
+            showNewStoreForm = false;
+        }
+        else
+        {
+            filteredStores = allStores
+                .Where(s => s.Name.Contains(storeSearchTerm, StringComparison.OrdinalIgnoreCase) ||
+                            s.Location.Contains(storeSearchTerm, StringComparison.OrdinalIgnoreCase))
+                .Take(5)
+                .ToList();
+
+            showNewStoreForm = !filteredStores.Any();
+        }
+        selectedStoreIndex = -1;
+    }
+
+    private async Task SelectStore(Store store)
+    {
+        await ProductService.AddStoreToProductAsync(Id, store.ID);
+        await LoadProduct();
+        showAddStoreDialog = false;
+    }
+
+    private async Task AddNewStore()
+    {
+        if (string.IsNullOrWhiteSpace(newStore.Name) || string.IsNullOrWhiteSpace(newStore.Location))
+        {
+            await JSRuntime.InvokeVoidAsync("alert", "Store name and location are required");
+            return;
+        }
+
+        try
+        {
+            newStore.Registration_Date = DateTime.UtcNow;
+            var addedStore = await ProductService.AddNewStoreAsync(newStore);
+            await ProductService.AddStoreToProductAsync(Id, addedStore.ID);
+            await LoadProduct();
+            showAddStoreDialog = false;
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Error adding store: {ex.Message}");
+        }
+    }
+
+    private async Task RemoveStore(int storeId)
+    {
+        if (await JSRuntime.InvokeAsync<bool>("confirm", "Are you sure you want to remove this product from the store?"))
+        {
+            await ProductService.RemoveStoreFromProductAsync(Id, storeId);
+            await LoadProduct();
+        }
+    }
+    
+    private void HandleStoreKeyDown(KeyboardEventArgs e, Store store)
+    {
+        switch (e.Key)
+        {
+            case "Enter":
+                _ = SelectStore(store);
+                break;
+            case "ArrowDown":
+                if (selectedStoreIndex < filteredStores.Count - 1)
+                {
+                    selectedStoreIndex++;
+                }
+                break;
+            case "ArrowUp":
+                if (selectedStoreIndex > 0)
+                {
+                    selectedStoreIndex--;
+                }
+                break;
+        }
+    }
+
+    private string GetConfidenceClass(int confirmationsCount)
+    {
+        if (confirmationsCount == 0) return "confidence-low";
+        if (confirmationsCount <= 3) return "confidence-low";
+        if (confirmationsCount <= 5) return "confidence-medium";
+        return "confidence-high";
+    }
+
+    private async Task SavePrice(int storeId)
+    {
+        try
+        {
+            var authState = await AuthProvider.GetAuthenticationStateAsync();
+            var userId = authState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
+            if (string.IsNullOrEmpty(userId))
+            {
+                await JSRuntime.InvokeVoidAsync("alert", "You must be logged in to update prices");
+                return;
+            }
+
+            var newPrice = new Price
+            {
+                ProductID = Id,
+                StoreID = storeId,
+                Value = editingPriceValue,
+                Date = DateTime.UtcNow,
+                UserID = userId
+            };
+
+            await ProductService.AddPriceAsync(newPrice);
+            await ProductService.AddPriceConfirmationAsync(newPrice.ID, userId);
+
+            editingPriceStoreId = null;
+            await LoadProduct();
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Error saving price: {ex.Message}");
+        }
+    }
+    
+    private void EditPrice(int storeId, double currentPrice)
+    {
+        editingPriceStoreId = storeId;
+        editingPriceValue = currentPrice;
+    }
+
+    private void CancelEditPrice()
+    {
+        editingPriceStoreId = null;
+        editingPriceValue = 0;
+    }
+
+    private async Task ConfirmPrice(int priceId)
+    {
+        if (priceId == 0) return;
+        
+        var authState = await AuthProvider.GetAuthenticationStateAsync();
+        var userId = authState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        
+        if (!string.IsNullOrEmpty(userId))
+        {
+            await ProductService.AddPriceConfirmationAsync(priceId, userId);
+            await LoadProduct();
+        }
+        else
+        {
+            await JSRuntime.InvokeVoidAsync("alert", "You must be logged in to confirm prices");
+        }
+    }
+}
+
+<style>
+    .confidence-badge {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+        margin: 0 auto;
+        cursor: default;
+    }
+
+    .confidence-high {
+        background-color: #28a745; /* Verde */
+    }
+
+    .confidence-medium {
+        background-color: #ffc107; /* Amarelo */
+        color: #212529;
+    }
+
+    .confidence-low {
+        background-color: #dc3545; /* Vermelho */
+    }
+
+    .table th {
+        white-space: nowrap;
+    }
+
+    .input-group {
+        max-width: 200px;
+    }
+</style>

@@ -1,0 +1,86 @@
+﻿@page "/products"
+@inject IProductService ProductService;
+@inject NavigationManager NavigationManager
+@inject JsInteropService JsInterop
+@rendermode @(new InteractiveServerRenderMode(prerender: false));
+
+<PageTitle>Products</PageTitle>
+<h3>Products</h3>
+
+@if (products.Count == 0)
+{
+    <p><em>Loading Products...</em></p>
+}
+else
+{
+    <table class="table">
+        <thead>
+        <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Description</th>
+            <th>Category</th>
+            <th>Registration_Date</th>
+            <th>Best Price</th>
+            <th></th>
+        </tr>
+        </thead>
+        <tbody>
+        @foreach (var product in products)
+        {
+            <tr>
+                <td>@product.Id</td>
+                <td>@product.Name</td>
+                <td>@product.Description</td>
+                <td>@product.CategoryName</td>
+                <td>@product.RegistrationDate.ToString("dd/MM/yyyy HH:mm:ss")</td>
+                <td>@(product.CurrentPrice?.ToString("C2"))</td>
+                <td><button class="btn btn-primary" @onclick="@(() => MoreInfo(product.Id))">More Info</button></td>
+                <td><button class="btn btn-primary" @onclick="@(() => EditProduct(product.Id))">Edit</button></td>
+                <td><button class="btn btn-danger" @onclick="@(() => DeleteProduct(product.Id))">Delete</button></td>
+            </tr>
+        }
+        </tbody>
+    </table>
+    <button @onclick="AddProduct" class="btn btn-primary">Add a new Product</button>
+}
+
+
+@code {
+    List<ProductService.ProductWithPriceDto> products = new List<ProductService.ProductWithPriceDto>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        products = await ProductService.GetAllProductsWithCurrentPriceAsync();
+    }
+    
+    void EditProduct(int id)
+    {
+        NavigationManager.NavigateTo($"/edit-product/{id}");
+    }
+    
+    void AddProduct()
+    {
+        NavigationManager.NavigateTo("/edit-product");
+    }
+    
+    void MoreInfo(int id)
+    {
+        NavigationManager.NavigateTo($"/moreinfo-product/{id}");
+    }
+    
+    private async Task DeleteProduct(int id)
+    {
+        var product = products.FirstOrDefault(p => p.Id == id);
+        if (product == null) return;
+
+        var confirmed = await JsInterop.Confirm($"Are you sure you want to delete '{product.Name}'?");
+        
+        if (confirmed)
+        {
+            await ProductService.DeleteProductAsync(id);
+            products = await ProductService.GetAllProductsWithCurrentPriceAsync();
+            StateHasChanged();
+        }
+    }
+}

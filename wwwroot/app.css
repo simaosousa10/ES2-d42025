@@ -49,3 +49,76 @@ h1:focus {
 .darker-border-checkbox.form-check-input {
     border-color: #929292;
 }
+
+.product-image-card {
+    transition: transform 0.3s ease;
+    cursor: pointer;
+}
+
+.product-image-card:hover {
+    transform: scale(1.03);
+}
+
+.store-table {
+    font-size: 0.9rem;
+}
+
+.store-table th {
+    background-color: #f8f9fa;
+    position: sticky;
+    top: 0;
+}
+
+.img-fluid.rounded {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.img-fluid.rounded:hover {
+    transform: scale(1.03);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.store-list {
+    max-height: 200px;
+    overflow-y: auto;
+    margin-bottom: 1rem;
+    border: 1px solid #dee2e6;
+    border-radius: 0.25rem;
+}
+
+.store-item {
+    padding: 0.75rem 1.25rem;
+    cursor: pointer;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.store-item:hover {
+    background-color: #f8f9fa;
+}
+
+.store-item:last-child {
+    border-bottom: none;
+}
+
+.store-name {
+    font-weight: 500;
+}
+
+.store-location {
+    font-size: 0.85rem;
+    color: #6c757d;
+}
+
+.modal {
+    backdrop-filter: blur(2px);
+}
+
+.modal-content {
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+/* Estilos para a tabela de lojas */
+.table-responsive {
+    max-height: 400px;
+    overflow-y: auto;
+}
