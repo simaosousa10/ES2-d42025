@@ -1,70 +1,62 @@
-﻿using ESIID42025.Data;
-using ESIID42025.Models;
-
-namespace ESIID42025.Controllers;
-
+﻿using ESIID42025.Models;
+using ESIID42025.Services;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
-[Route("api/[controller]")]
-[ApiController]
-
-public class PriceController : ControllerBase
+namespace ESIID42025.Controllers
 {
-    private readonly ApplicationDbContext _context;
-    
-    public PriceController(ApplicationDbContext context)
+    [Route("api/[controller]")]
+    [ApiController]
+    public class PriceController : ControllerBase
     {
-        _context = context;
-    }
-    
-    [HttpGet]
-    public async Task<ActionResult<IEnumerable<Price>>> GetPrices()
-    {
-        return await _context.Prices.ToListAsync();
-    }
+        private readonly PriceService _priceService;
 
-    [HttpGet("{id}")]
-    public async Task<ActionResult<Price>> GetPrice(int id)
-    {
-        var price = await _context.Prices.FindAsync(id);
-        if (price == null)
+        public PriceController(PriceService priceService)
         {
-            return NotFound();
+            _priceService = priceService;
         }
-        return price;
-    }
 
-    [HttpPost]
-    public async Task<ActionResult<Price>> PostPrice(Price price)
-    {
-        _context.Prices.Add(price);
-        await _context.SaveChangesAsync();
-        return CreatedAtAction(nameof(GetPrice), new { id = price.ID }, price);
-    }
-
-    [HttpPut("{id}")]
-    public async Task<IActionResult> PutPrice(int id, Price price)
-    {
-        if (id != price.ID)
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<Price>>> GetPrices()
         {
-            return BadRequest();
+            var prices = await _priceService.GetAllAsync();
+            return Ok(prices);
         }
-        _context.Entry(price).State = EntityState.Modified;
-        await _context.SaveChangesAsync();
-        return NoContent();
-    }
 
-    [HttpDelete("{id}")]
-    public async Task<IActionResult> DeletePrice(int id)
-    {
-        var price = await _context.Prices.FindAsync(id);
-        if (price == null)
+        [HttpGet("{id}")]
+        public async Task<ActionResult<Price>> GetPrice(int id)
         {
-            return NotFound();
+            var price = await _priceService.GetByIdAsync(id);
+            if (price == null)
+                return NotFound();
+
+            return Ok(price);
         }
-        _context.Prices.Remove(price);
-        await _context.SaveChangesAsync();
-        return NoContent();
+
+        [HttpPost]
+        public async Task<ActionResult<Price>> PostPrice(Price price)
+        {
+            var created = await _priceService.CreateAsync(price);
+            return CreatedAtAction(nameof(GetPrice), new { id = created.ID }, created);
+        }
+
+        [HttpPut("{id}")]
+        public async Task<IActionResult> PutPrice(int id, Price price)
+        {
+            var success = await _priceService.UpdateAsync(id, price);
+            if (!success)
+                return BadRequest();
+
+            return NoContent();
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeletePrice(int id)
+        {
+            var success = await _priceService.DeleteAsync(id);
+            if (!success)
+                return NotFound();
+
+            return NoContent();
+        }
     }
 }
