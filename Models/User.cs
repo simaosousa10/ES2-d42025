@@ -1,15 +1,15 @@
-﻿using System.ComponentModel.DataAnnotations;
-using Microsoft.AspNetCore.Identity;
+﻿using Microsoft.AspNetCore.Identity;
 
 namespace ESIID42025.Models;
 
+// Models/User.cs
 public class User : IdentityUser
 {
     public string? Name { get; set; }
-    
-    // Navigation Properties
-    public ICollection<Message> Messages { get; set; }
-    public ICollection<PriceConfirmation> PriceConfirmations { get; set; }
-    public ICollection<Report> Reports { get; set; }
-    public ICollection<Price> Prices { get; set; }
+
+    public ICollection<Message> Messages { get; set; } = new List<Message>();
+    public ICollection<Report> Reports { get; set; } = new List<Report>();
+
+    public ICollection<Price> Prices { get; set; } = new List<Price>();
+    public ICollection<PriceConfirmation> PriceConfirmations { get; set; } = new List<PriceConfirmation>();
 }
