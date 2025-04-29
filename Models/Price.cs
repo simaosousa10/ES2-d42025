@@ -10,6 +10,7 @@ public class Price
     public double Value { get; set; }
     public DateTime Date { get; set; }
 
+    public double TrustScore { get; set; }
     // Foreign Keys
     public int StoreID { get; set; }
     public Store Store { get; set; }

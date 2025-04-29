@@ -15,7 +15,7 @@ else
 {
     <div class="container mt-4">
         <h2 class="mb-4">@product.Name</h2>
-        
+
         <div class="row">
             <!-- Card de Lojas - Atualizado -->
             <div class="col-md-10 mb-4">
@@ -32,92 +32,93 @@ else
                             <div class="table-responsive">
                                 <table class="table table-hover">
                                     <thead>
-                                        <tr>
-                                            <th>Store</th>
-                                            <th>Location</th>
-                                            <th>Price</th>
-                                            <th>Last Updated</th>
-                                            <th>Confidence</th>
-                                            <th>Actions</th>
-                                        </tr>
+                                    <tr>
+                                        <th>Store</th>
+                                        <th>Location</th>
+                                        <th>Price</th>
+                                        <th>Last Updated</th>
+                                        <th>Confidence</th>
+                                        <th>Actions</th>
+                                    </tr>
                                     </thead>
                                     <tbody>
-                                        @foreach (var storeProduct in product.StoreProducts)
-                                        {
-                                            var latestPrice = product.Prices?
-                                                .Where(p => p.StoreID == storeProduct.StoreID)
-                                                .OrderByDescending(p => p.Date)
-                                                .FirstOrDefault();
+                                    @foreach (var storeProduct in product.StoreProducts)
+                                    {
+                                        var latestPrice = product.Prices?
+                                            .Where(p => p.StoreID == storeProduct.StoreID)
+                                            .OrderByDescending(p => p.Date)
+                                            .FirstOrDefault();
 
-                                            var confirmationsCount = latestPrice?.PriceConfirmations?.Count ?? 0;
+                                        var trustScore = latestPrice?.TrustScore ?? 0;
+                                        var confirmationsCount = latestPrice?.PriceConfirmations?.Count ?? 0;
 
-                                            <tr>
-                                                <td>@storeProduct.Store?.Name</td>
-                                                <td>
-                                                    @if (!string.IsNullOrEmpty(storeProduct.Store?.GoogleMaps_URL))
-                                                    {
-                                                        <a href="@storeProduct.Store.GoogleMaps_URL" target="_blank">
-                                                            @storeProduct.Store?.Location
-                                                        </a>
-                                                    }
-                                                    else
-                                                    {
+                                        <tr>
+                                            <td>@storeProduct.Store?.Name</td>
+                                            <td>
+                                                @if (!string.IsNullOrEmpty(storeProduct.Store?.GoogleMaps_URL))
+                                                {
+                                                    <a href="@storeProduct.Store.GoogleMaps_URL" target="_blank">
                                                         @storeProduct.Store?.Location
-                                                    }
-                                                </td>
-                                                <td>
-                                                    @if (editingPriceStoreId == storeProduct.StoreID)
-                                                    {
-                                                        <div class="input-group" style="max-width: 200px;">
-                                                            <input type="number" step="0.01" 
-                                                                   @bind="editingPriceValue" 
-                                                                   class="form-control" />
-                                                            <div>
-                                                                <button @onclick="@(() => SavePrice(storeProduct.StoreID))" 
-                                                                        class="btn btn-success btn-sm">Save
-                                                                    <i class="fas fa-check"></i>
-                                                                </button>
-                                                                <button @onclick="CancelEditPrice" 
-                                                                        class="btn btn-danger btn-sm">Cancel
-                                                                    <i class="fas fa-times"></i>
-                                                                </button>
-                                                            </div>
-                                                        </div>
-                                                    }
-                                                    else
-                                                    {
-                                                        <div class="d-flex align-items-center">
-                                                            <span>@(latestPrice?.Value.ToString("C2") ?? "N/A")</span>
-                                                            <button @onclick="@(() => EditPrice(storeProduct.StoreID, latestPrice?.Value ?? 0))"
-                                                                    class="btn btn-link p-0 ms-2 text-primary"
-                                                                    style="font-size: 0.9rem; min-width: 20px;">
-                                                                <i class="fas fa-edit"></i>Edit
+                                                    </a>
+                                                }
+                                                else
+                                                {
+                                                    @storeProduct.Store?.Location
+                                                }
+                                            </td>
+                                            <td>
+                                                @if (editingPriceStoreId == storeProduct.StoreID)
+                                                {
+                                                    <div class="input-group" style="max-width: 200px;">
+                                                        <input type="number" step="0.01"
+                                                               @bind="editingPriceValue"
+                                                               class="form-control" />
+                                                        <div>
+                                                            <button @onclick="@(() => SavePrice(storeProduct.StoreID))"
+                                                                    class="btn btn-success btn-sm">Save
+                                                                <i class="fas fa-check"></i>
+                                                            </button>
+                                                            <button @onclick="CancelEditPrice"
+                                                                    class="btn btn-danger btn-sm">Cancel
+                                                                <i class="fas fa-times"></i>
                                                             </button>
                                                         </div>
-                                                    }
-                                                </td>
-                                                <td class="align-middle">@(latestPrice?.Date.ToString("dd/MM/yyyy HH:mm"))</td>
-                                                <td class="align-middle">
-                                                    <div class="confidence-badge @GetConfidenceClass(confirmationsCount)"
-                                                         title="@confirmationsCount confirmation(s)">
-                                                        @confirmationsCount
                                                     </div>
-                                                </td>
-                                                <td class="align-middle">
-                                                    <button @onclick="@(() => ConfirmPrice(latestPrice?.ID ?? 0))"
-                                                            class="btn btn-outline-success"
-                                                            disabled="@(latestPrice == null)"
-                                                            title="Confirm price">
-                                                        <i class="fas fa-check-circle"></i>Confirm Price
-                                                    </button>
-                                                    <button @onclick="@(() => RemoveStore(storeProduct.StoreID))"
-                                                            class="btn btn-outline-danger"
-                                                            title="Remove store">
-                                                        <i class="fas fa-trash-alt"></i>Delete Store
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        }
+                                                }
+                                                else
+                                                {
+                                                    <div class="d-flex align-items-center">
+                                                        <span>@(latestPrice?.Value.ToString("C2") ?? "N/A")</span>
+                                                        <button @onclick="@(() => EditPrice(storeProduct.StoreID, latestPrice?.Value ?? 0))"
+                                                                class="btn btn-link p-0 ms-2 text-primary"
+                                                                style="font-size: 0.9rem; min-width: 20px;">
+                                                            <i class="fas fa-edit"></i>Edit
+                                                        </button>
+                                                    </div>
+                                                }
+                                            </td>
+                                            <td class="align-middle">@(latestPrice?.Date.ToString("dd/MM/yyyy HH:mm"))</td>
+                                            <td class="align-middle">
+                                                <div class="confidence-badge @GetConfidenceClass(trustScore)"
+                                                     title="@confirmationsCount confirmation(s)">
+                                                    @trustScore.ToString("0")
+                                                </div>
+                                            </td>
+                                            <td class="align-middle">
+                                                <button @onclick="@(() => ConfirmPrice(latestPrice?.ID ?? 0))"
+                                                        class="btn btn-outline-success"
+                                                        disabled="@(latestPrice == null)"
+                                                        title="Confirm price">
+                                                    <i class="fas fa-check-circle"></i>Confirm Price
+                                                </button>
+                                                <button @onclick="@(() => RemoveStore(storeProduct.StoreID))"
+                                                        class="btn btn-outline-danger"
+                                                        title="Remove store">
+                                                    <i class="fas fa-trash-alt"></i>Delete Store
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    }
                                     </tbody>
                                 </table>
                             </div>
@@ -146,11 +147,11 @@ else
                                 @foreach (var image in product.Images)
                                 {
                                     <div class="col-md-6 mb-3 position-relative">
-                                        <img src="@image.UrlImage" 
+                                        <img src="@image.UrlImage"
                                              class="img-fluid rounded border"
                                              alt="Product image"
                                              style="max-height: 200px; width: auto; display: block; margin: 0 auto;">
-                                        <button class="btn btn-danger btn-sm position-absolute top-0 end-0 m-1" 
+                                        <button class="btn btn-danger btn-sm position-absolute top-0 end-0 m-1"
                                                 @onclick="@(() => DeleteImage(image.Id))">
                                             <i class="fas fa-trash-alt"></i>X
                                         </button>
@@ -433,7 +434,7 @@ else
             await LoadProduct();
         }
     }
-    
+
     private void HandleStoreKeyDown(KeyboardEventArgs e, Store store)
     {
         switch (e.Key)
@@ -456,11 +457,10 @@ else
         }
     }
 
-    private string GetConfidenceClass(int confirmationsCount)
+    private string GetConfidenceClass(double trustScore)
     {
-        if (confirmationsCount == 0) return "confidence-low";
-        if (confirmationsCount <= 3) return "confidence-low";
-        if (confirmationsCount <= 5) return "confidence-medium";
+        if (trustScore <= 30) return "confidence-low";
+        if (trustScore <= 70) return "confidence-medium";
         return "confidence-high";
     }
 
@@ -483,7 +483,9 @@ else
                 StoreID = storeId,
                 Value = editingPriceValue,
                 Date = DateTime.UtcNow,
+                TrustScore = 0,
                 UserID = userId
+                    
             };
 
             await ProductService.AddPriceAsync(newPrice);
@@ -497,7 +499,7 @@ else
             await JSRuntime.InvokeVoidAsync("alert", $"Error saving price: {ex.Message}");
         }
     }
-    
+
     private void EditPrice(int storeId, double currentPrice)
     {
         editingPriceStoreId = storeId;
@@ -513,10 +515,10 @@ else
     private async Task ConfirmPrice(int priceId)
     {
         if (priceId == 0) return;
-        
+
         var authState = await AuthProvider.GetAuthenticationStateAsync();
         var userId = authState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        
+
         if (!string.IsNullOrEmpty(userId))
         {
             await ProductService.AddPriceConfirmationAsync(priceId, userId);
