@@ -1,5 +1,6 @@
 ﻿using ESIID42025.Data;
 using ESIID42025.Models;
+using ESIID42025.Services.Strategies;
 using Microsoft.EntityFrameworkCore;
 
 namespace ESIID42025.Services;
@@ -7,12 +8,11 @@ namespace ESIID42025.Services;
 public class ProductService : IProductService
 {
     private readonly ApplicationDbContext _context;
-    private readonly IPriceService _priceService;
-
-    public ProductService(ApplicationDbContext context, IPriceService priceService)
+    private readonly ICredibilityStrategy _hybridStrategy;
+    public ProductService(ApplicationDbContext context, ICredibilityStrategy hybridStrategy)
     {
         _context = context;
-        _priceService = priceService;
+        _hybridStrategy = hybridStrategy;
     }
     
     public async Task<List<Product>> GetAllProductsAsync()
@@ -135,12 +135,24 @@ public class ProductService : IProductService
 
     public async Task AddPriceToProductAsync(int productId, Price price)
     {
-        await _priceService.AddPriceAsync(productId, price);
+        var product = await _context.Products
+            .Include(p => p.Prices)
+            .FirstOrDefaultAsync(p => p.ID == productId);
+
+        if (product == null)
+            throw new KeyNotFoundException($"Product with id {productId} not found");
+
+        // Configura o relacionamento e data
+        price.TrustScore = 0;
+        price.ID = productId;
+        price.Date = DateTime.UtcNow; // Garante a data atual
+        product.Prices.Add(price);
+        await _context.SaveChangesAsync();
     }
     
     public async Task<Product> GetProductWithStoresAndImagesAsync(int id)
     {
-        return await _context.Products
+        var product = await _context.Products
                    .Include(p => p.StoreProducts)
                    .ThenInclude(sp => sp.Store)
                    .Include(p => p.Images)
@@ -149,6 +161,13 @@ public class ProductService : IProductService
                    .Include(p => p.Category) // Se precisar da categoria
                    .FirstOrDefaultAsync(p => p.ID == id) 
                ?? throw new KeyNotFoundException($"Product with id {id} not found");
+        
+        foreach (var price in product.Prices)
+        {
+            price.TrustScore = _hybridStrategy.Calculate(price);
+        }
+
+        return product;
     }
 
     
@@ -269,6 +288,11 @@ public class ProductService : IProductService
 
     public async Task AddPriceConfirmationAsync(int priceId, string userId)
     {
+        var price = await _context.Prices
+            .Include(p => p.PriceConfirmations)
+            .FirstOrDefaultAsync(p => p.ID == priceId);
+        if (price == null) return;
+        
         var confirmation = new PriceConfirmation
         {
             PriceID = priceId,
@@ -277,9 +301,31 @@ public class ProductService : IProductService
         };
     
         _context.PriceConfirmations.Add(confirmation);
+        if (price.PriceConfirmations == null)
+        {
+            price.TrustScore = 15;
+        }
+        else
+        {
+            price.TrustScore = _hybridStrategy.Calculate(price);
+        }
         await _context.SaveChangesAsync();
     }
+    
+    public async Task UpdatePriceTrustScore(int priceId)
+    {
+        var price = await _context.Prices
+            .Include(p => p.PriceConfirmations)
+            .FirstOrDefaultAsync(p => p.ID == priceId);
 
+        if (price != null)
+        {
+            price.TrustScore = _hybridStrategy.Calculate(price);
+        
+            await _context.SaveChangesAsync();
+        }
+    }
+    
     public async Task<List<PriceConfirmation>> GetConfirmationsForPriceAsync(int priceId)
     {
         return await _context.PriceConfirmations

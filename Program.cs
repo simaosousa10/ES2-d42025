@@ -4,6 +4,7 @@ using ESIID42025.Components.Account;
 using ESIID42025.Data;
 using ESIID42025.Models;
 using ESIID42025.Services;
+using ESIID42025.Services.Strategies;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
@@ -22,9 +23,8 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddScoped<IProductService, ProductService>();
-builder.Services.AddScoped<IPriceService, PriceService>();
-
 builder.Services.AddScoped<JsInteropService>();
+builder.Services.AddScoped<ICredibilityStrategy, HybridStrategy>();
 
 // Configuração do Identity - Modificado para usar o padrão do novo projeto
 builder.Services.AddCascadingAuthenticationState();
