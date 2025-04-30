@@ -1,0 +1,70 @@
+﻿@page "/stores/create"
+@inject StoreService StoreService
+@inject NavigationManager NavigationManager
+@rendermode InteractiveServer
+
+<h3>Create New Store</h3>
+
+@if (errorMessage != null)
+{
+    <div class="alert alert-danger">@errorMessage</div>
+}
+
+<EditForm Model="store" OnValidSubmit="HandleValidSubmit" FormName="CreateStoreForm">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="mb-3">
+        <label for="Name" class="form-label">Name</label>
+        <InputText id="Name" class="form-control" @bind-Value="store.Name" />
+    </div>
+
+    <div class="mb-3">
+        <label for="Location" class="form-label">Location</label>
+        <InputText id="Location" class="form-control" @bind-Value="store.Location" />
+    </div>
+
+    <div class="mb-3">
+        <label for="GoogleMaps_URL" class="form-label">Google Maps URL</label>
+        <InputText id="GoogleMaps_URL" class="form-control" @bind-Value="store.GoogleMaps_URL" />
+    </div>
+
+    <div class="mb-3">
+        <label for="Registration_Date" class="form-label">Registration Date</label>
+        <InputDate id="Registration_Date" class="form-control" @bind-Value="store.Registration_Date" />
+    </div>
+
+    <button type="submit" class="btn btn-success">Save</button>
+    <button type="button" class="btn btn-secondary ms-2" @onclick="GoBack">Cancel</button>
+</EditForm>
+
+@code {
+    private Store store = new()
+    {
+        Registration_Date = DateTime.Today
+    };
+
+    private string? errorMessage;
+
+    private async Task HandleValidSubmit()
+    {
+        if (store.Registration_Date.Kind == DateTimeKind.Unspecified)
+        {
+            store.Registration_Date = DateTime.SpecifyKind(store.Registration_Date, DateTimeKind.Utc);
+        }
+        else
+        {
+            store.Registration_Date = store.Registration_Date.ToUniversalTime();
+        }
+
+        await StoreService.CreateStoreAsync(store);
+        NavigationManager.NavigateTo("/stores", forceLoad: true);
+    }
+
+
+
+    private void GoBack()
+    {
+        NavigationManager.NavigateTo("/stores");
+    }
+}

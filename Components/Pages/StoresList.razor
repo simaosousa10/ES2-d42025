@@ -1,0 +1,85 @@
+﻿@page "/stores"
+@inject StoreService StoreService
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JsInterop
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+
+<PageTitle>Stores</PageTitle>
+<h3>Stores</h3>
+
+@if (stores.Count == 0)
+{
+    <p><em>Loading stores...</em></p>
+}
+else
+{
+    <table class="table">
+        <thead>
+        <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Location</th>
+            <th>Google Maps</th>
+            <th>Registration Date</th>
+            <th></th>
+        </tr>
+        </thead>
+        <tbody>
+        @foreach (var store in stores)
+        {
+            <tr>
+                <td>@store.ID</td>
+                <td>@store.Name</td>
+                <td>@store.Location</td>
+                <td><a href="@store.GoogleMaps_URL" target="_blank">Map</a></td>
+                <td>@store.Registration_Date.ToString("dd/MM/yyyy HH:mm:ss")</td>
+                <td>
+                    
+                    <button class="btn btn-warning me-1" @onclick="@(() => EditStore(store.ID))">Edit</button>
+                    <button class="btn btn-danger" @onclick="@(() => DeleteStore(store.ID))">Delete</button>
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+    <button @onclick="AddStore" class="btn btn-primary mt-3">Add a new Store</button>
+}
+
+@code {
+    private List<Store> stores = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        stores = await StoreService.GetStoresAsync();
+    }
+
+    private void AddStore()
+    {
+        NavigationManager.NavigateTo("/stores/create");
+    }
+
+    private void EditStore(int id)
+    {
+        NavigationManager.NavigateTo($"/stores/edit/{id}");
+    }
+
+    private void ViewStore(int id)
+    {
+        NavigationManager.NavigateTo($"/stores/view/{id}");
+    }
+
+    private async Task DeleteStore(int id)
+    {
+        var store = stores.FirstOrDefault(s => s.ID == id);
+        if (store == null) return;
+
+        var confirmed = await JsInterop.InvokeAsync<bool>("confirm", $"Are you sure you want to delete '{store.Name}'?");
+
+        if (confirmed)
+        {
+            await StoreService.DeleteStoreAsync(id);
+            stores = await StoreService.GetStoresAsync();
+            StateHasChanged();
+        }
+    }
+}

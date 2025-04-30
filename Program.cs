@@ -26,42 +26,39 @@ builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<JsInteropService>();
 builder.Services.AddScoped<ICredibilityStrategy, HybridStrategy>();
 
-// Configuração do Identity - Modificado para usar o padrão do novo projeto
+builder.Services.AddScoped<StoreService>(); // ✅ Moved UP here!
+
+// Configuração do Identity
 builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddScoped<IdentityUserAccessor>();
-builder.Services.AddScoped<IdentityRedirectManager>(); // Adicionado para resolver o erro
-builder.Services.AddScoped<AuthenticationStateProvider, ServerAuthenticationStateProvider>(); // Alterado de Custom para Server
+builder.Services.AddScoped<IdentityRedirectManager>();
+builder.Services.AddScoped<AuthenticationStateProvider, ServerAuthenticationStateProvider>();
 
 builder.Services.AddAuthorization();
 builder.Services.AddAuthentication(options =>
-    {
-        options.DefaultScheme = IdentityConstants.ApplicationScheme;
-        options.DefaultSignInScheme = IdentityConstants.ExternalScheme;
-    })
-    .AddIdentityCookies();
+{
+    options.DefaultScheme = IdentityConstants.ApplicationScheme;
+    options.DefaultSignInScheme = IdentityConstants.ExternalScheme;
+})
+.AddIdentityCookies();
 
-// Configuração do Identity Core - Modificado para ficar igual ao novo projeto
-builder.Services.AddIdentityCore<User>(options => 
-    {
-        options.SignIn.RequireConfirmedAccount = false;
-        options.Password.RequireDigit = true;
-        options.Password.RequireLowercase = true;
-        options.Password.RequireUppercase = true;
-        options.Password.RequireNonAlphanumeric = true;
-        options.Password.RequiredLength = 8;
-    })
-    .AddRoles<IdentityRole>()
-    .AddEntityFrameworkStores<ApplicationDbContext>()
-    .AddSignInManager() // Adicionado
-    .AddDefaultTokenProviders();
+builder.Services.AddIdentityCore<User>(options =>
+{
+    options.SignIn.RequireConfirmedAccount = false;
+    options.Password.RequireDigit = true;
+    options.Password.RequireLowercase = true;
+    options.Password.RequireUppercase = true;
+    options.Password.RequireNonAlphanumeric = true;
+    options.Password.RequiredLength = 8;
+})
+.AddRoles<IdentityRole>()
+.AddEntityFrameworkStores<ApplicationDbContext>()
+.AddSignInManager()
+.AddDefaultTokenProviders();
 
-// Adicionar controllers de API
 builder.Services.AddControllers();
-
-// Adicionar suporte a Razor Pages
 builder.Services.AddRazorPages();
 
-// Configuração do Swagger
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
@@ -73,22 +70,20 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
-// Configuração do HttpClient
 builder.Services.AddHttpClient();
 builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri("https://localhost:44372") });
 
 builder.Services.AddScoped<IEmailSender<User>, IdentityNoOpEmailSender>();
 
-var app = builder.Build();
+var app = builder.Build(); // ✅ only after all services are added!
 
-// Criação de roles e usuário admin padrão (opcional)
+// Criação de roles e usuário admin padrão
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
     var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
     var userManager = services.GetRequiredService<UserManager<User>>();
 
-    // Cria roles padrão (Admin, User, UserManager)
     string[] roles = { "Admin", "User", "UserManager" };
     foreach (var role in roles)
     {
@@ -98,7 +93,6 @@ using (var scope = app.Services.CreateScope())
         }
     }
 
-    // Cria um usuário admin padrão (opcional)
     string adminEmail = "admin@example.com";
     string adminPassword = "Admin@123";
     string adminName = "Admin";
@@ -115,7 +109,6 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -144,7 +137,6 @@ app.UseAntiforgery();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
-// Adicionar endpoints de Identity - Necessário para as páginas de Account funcionarem
 app.MapAdditionalIdentityEndpoints();
 
 app.Run();
