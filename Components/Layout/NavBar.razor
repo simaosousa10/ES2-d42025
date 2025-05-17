@@ -1,0 +1,44 @@
+﻿@inject AuthenticationStateProvider _authStateProvider
+
+<nav class="navbar navbar-expand-md navbar-dark" style="background-color: #2962FF; padding: 0.5rem 0;">
+    <div class="d-flex justify-content-between align-items-center w-100 px-4">
+        <div class="d-flex align-items-center">
+            <button class="btn btn-link text-white me-3 p-0" type="button">
+                <i class="bi bi-list" style="font-size: 1.5rem;"></i>
+            </button>
+
+            <a class="navbar-brand d-flex align-items-center" href="/">
+                <img src="/images/LogoEmBranco.png" alt="Logo" width="140" height="32" class="me-2" />
+            </a>
+        </div>
+        
+        <div class="d-flex align-items-center text-white">
+            <AuthorizeView>
+                <Authorized>
+                    @{
+                        var user = context.User;
+                    }
+
+                    <NavLink href="Account/Manage" class="d-flex align-items-center text-white text-decoration-none">
+                        @if (user.IsInRole("Admin"))
+                        {
+                            <span class="small d-none d-md-inline me-5">Admin Features</span>
+                        }
+                        else if (user.IsInRole("UserManager"))
+                        {
+                            <span class="small d-none d-md-inline me-4">UserManager Features</span>
+                        }
+
+                        <i class="bi bi-person-circle me-2" style="font-size: 1.6rem;"></i>
+                        <span class="small d-none d-md-inline">Welcome, @user.Identity?.Name</span>
+                    </NavLink>
+                </Authorized>
+
+                <NotAuthorized>
+                    <i class="bi bi-person-circle" style="font-size: 1.6rem;"></i>
+                </NotAuthorized>
+            </AuthorizeView>
+
+        </div>
+    </div>
+</nav>

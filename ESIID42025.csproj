@@ -29,6 +29,7 @@
       <_ContentIncludedByDefault Remove="Components\Pages\Account\AccessDenied.razor" />
       <_ContentIncludedByDefault Remove="Components\Pages\Account\Login.razor" />
       <_ContentIncludedByDefault Remove="Components\Pages\Account\Logout.razor" />
+      <_ContentIncludedByDefault Remove="wwwroot\images\LogoEmBranco.png" />
     </ItemGroup>
 
 </Project>

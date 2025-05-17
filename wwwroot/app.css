@@ -122,3 +122,7 @@ h1:focus {
     max-height: 400px;
     overflow-y: auto;
 }
+
+.navbar-custom {
+    background-color: #2962FF !important;
+}
