@@ -1,6 +1,6 @@
 ﻿@inject AuthenticationStateProvider _authStateProvider
 
-<nav class="navbar navbar-expand-md navbar-dark" style="background-color: #2962FF; padding: 0.5rem 0;">
+<nav class="navbar navbar-expand-md navbar-dark" style="background-color: #2962FF; padding: 0.75rem 0;">
     <div class="d-flex justify-content-between align-items-center w-100 px-4">
         <div class="d-flex align-items-center">
             <button class="btn btn-link text-white me-3 p-0" type="button">
@@ -8,8 +8,19 @@
             </button>
 
             <a class="navbar-brand d-flex align-items-center" href="/">
-                <img src="/images/LogoEmBranco.png" alt="Logo" width="140" height="32" class="me-2" />
+                <img src="/images/LogoEmBranco.png" alt="Logo" width="130" height="32" class="me-2" />
             </a>
+        </div>
+
+        <div class="flex-grow-1 mx-3 mb-2 mb-md-0" style="max-width: 500px;">
+            <div class="d-flex align-items-center position-relative">
+                <input type="text" class="form-control rounded-pill px-4"
+                       placeholder="Search for a Product, Store, Category..." @bind="_searchText" @bind:event="oninput"
+                       style="width: 100%; padding: 10px 20px;">
+                <span class="position-absolute end-0 pe-3 text-muted">
+                    <i class="bi bi-search"></i>
+                </span>
+            </div>
         </div>
         
         <div class="d-flex align-items-center text-white">
@@ -35,10 +46,24 @@
                 </Authorized>
 
                 <NotAuthorized>
-                    <i class="bi bi-person-circle" style="font-size: 1.6rem;"></i>
+                    <NavLink href="Account/login" class="d-flex align-items-center text-white text-decoration-none">
+                        <i class="bi bi-person-circle" style="font-size: 1.6rem;"></i>
+                    </NavLink>
                 </NotAuthorized>
             </AuthorizeView>
 
         </div>
     </div>
 </nav>
+
+@code
+{
+    private string _searchText = string.Empty;
+
+    private async Task OnSearchTextChanged(ChangeEventArgs e)
+    {
+        _searchText = e.Value.ToString();
+        await Task.Delay(500); // Simulate a delay for the search
+        // Perform search logic here
+    }
+}

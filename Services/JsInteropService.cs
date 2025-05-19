@@ -16,5 +16,6 @@ namespace ESIID42025.Services
         {
             return await _jsRuntime.InvokeAsync<bool>("confirm", message);
         }
+        
     }
 }

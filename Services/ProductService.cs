@@ -21,6 +21,7 @@ public class ProductService : IProductService
             .Include(p => p.Prices)
             .Include(p => p.StoreProducts)
             .Include(p => p.Images)
+            .Include(p => p.Category)
             .ToListAsync();
         return result;
     }

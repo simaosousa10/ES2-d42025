@@ -1,0 +1,17 @@
+.product-scroll-container {
+    scroll-behavior: smooth;
+    padding-bottom: 1rem;
+}
+
+.product-card {
+    min-width: 220px;
+    max-width: 220px;
+    flex-shrink: 0;
+}
+
+.scroll-right-btn {
+    position: absolute;
+    top: 55px;
+    right: 10px;
+    z-index: 10;
+}
