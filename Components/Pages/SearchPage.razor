@@ -1,0 +1,100 @@
+﻿@page "/search/{term}"
+@using ESIID42025.Data
+@using ESIID42025.Models
+@inject ApplicationDbContext Db
+@inject NavigationManager NavigationManager
+@rendermode InteractiveServer
+
+
+
+@if (filteredProducts == null)
+{
+    <p class="text-center">A carregar...</p>
+}
+else if (!filteredProducts.Any())
+{
+    <div class="text-center mt-5">
+        <img src="images/ProductsNotFound.png" alt="Sem resultados" class="img-fluid" style="max-height: 500px;" />
+        
+    </div>
+}
+else
+{
+    <h3 class="text-center mt-4">Resultados para: "@term"</h3>
+    <div class="container mt-4">
+        <div class="row justify-content-center">
+            @foreach (var product in filteredProducts)
+            {
+                <div class="col-6 col-md-4 col-lg-2 mb-4 d-flex justify-content-center">
+                    <div class="card shadow-sm" style="width: 180px;">
+                        <img src="@(product.Images?.FirstOrDefault()?.UrlImage ?? "/images/default.png")"
+                             class="card-img-top p-3"
+                             style="height: 200px; object-fit: contain;"
+                             alt="@product.Name" />                        <div class="card-body p-2">
+                            <h6 class="card-title text-truncate">@product.Name</h6>
+                            <p class="mb-1 text-primary fw-semibold">
+                                @GetLowestPrice(product)
+                            </p>
+                            <p class="mb-2 text-muted small">
+                                @GetStoreCount(product) lojas
+                            </p>
+                            <button class="btn btn-sm btn-outline-primary w-100 rounded-pill"
+                                    @onclick="() => GoToProductDetails(product.ID)">
+                                Details
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public string term { get; set; }
+
+    private List<Product> filteredProducts;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (string.IsNullOrWhiteSpace(term))
+        {
+            filteredProducts = new();
+            return;
+        }
+
+        var loweredTerm = term.ToLower();
+
+        filteredProducts = await Task.Run(() =>
+            Db.Products
+              .Where(p =>
+                  p.Name.ToLower().Contains(loweredTerm) ||
+                  p.Category.Name.ToLower().Contains(loweredTerm) ||
+                  p.Prices.Any(pr => pr.Store.Name.ToLower().Contains(loweredTerm))
+              )
+              .Distinct()
+              .ToList()
+        );
+    }
+
+    string GetLowestPrice(Product p)
+    {
+        var lowest = p.Prices?.Where(pr => pr.ProductID == p.ID)
+                              .OrderBy(pr => pr.Value)
+                              .FirstOrDefault();
+
+        return lowest != null ? $"{lowest.Value:C}" : "N/A";
+    }
+
+    int GetStoreCount(Product product) =>
+        product.Prices?.Where(p => p.ProductID == product.ID)
+                       .Select(p => p.StoreID)
+                       .Distinct()
+                       .Count() ?? 0;
+
+    void GoToProductDetails(int productId)
+    {
+        NavigationManager.NavigateTo($"/product/{productId}");
+    }
+}

@@ -1,4 +1,5 @@
-﻿using ESIID42025.Models;
+﻿using ESIID42025.DTOs;
+using ESIID42025.Models;
 
 namespace ESIID42025.Services;
 
@@ -31,4 +32,7 @@ public interface IProductService
     Task AddPriceAsync(Price price);
     Task AddPriceConfirmationAsync(int priceId, string userId);
     Task<List<PriceConfirmation>> GetConfirmationsForPriceAsync(int priceId);
+
+    Task<List<SearchSuggestion>> GetSearchSuggestionsAsync(string term);
+
 }

@@ -1,4 +1,5 @@
 ﻿using ESIID42025.Data;
+using ESIID42025.DTOs;
 using ESIID42025.Models;
 using ESIID42025.Services.Strategies;
 using Microsoft.EntityFrameworkCore;
@@ -329,6 +330,40 @@ public class ProductService : IProductService
             .Where(pc => pc.PriceID == priceId)
             .ToListAsync();
     }
+    
+    
+    public async Task<List<SearchSuggestion>> GetSearchSuggestionsAsync(string term)
+    {
+        term = term.ToLower();
+
+        var productResults = await _context.Products
+            .Where(p => p.Name.ToLower().Contains(term))
+            .Select(p => new SearchSuggestion { Text = p.Name, Type = "product", Id = p.ID})
+            .Distinct()
+            .Take(5)
+            .ToListAsync();
+
+        var categoryResults = await _context.Categories
+            .Where(c => c.Name.ToLower().Contains(term))
+            .Select(c => new SearchSuggestion { Text = c.Name, Type = "category" })
+            .Distinct()
+            .Take(5)
+            .ToListAsync();
+
+        var storeResults = await _context.Stores
+            .Where(s => s.Name.ToLower().Contains(term))
+            .Select(s => new SearchSuggestion { Text = s.Name, Type = "store" })
+            .Distinct()
+            .Take(5)
+            .ToListAsync();
+
+        return productResults
+            .Concat(categoryResults)
+            .Concat(storeResults)
+            .ToList();
+    }
+
+
     
     
     public class ProductWithPriceDto
