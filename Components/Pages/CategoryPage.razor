@@ -1,0 +1,142 @@
+﻿@page "/category/{CategoryName}"
+@using ESIID42025.Models
+@inject IProductService ProductService
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<h3 class="my-4 text-center">@CategoryName</h3>
+
+<!-- Filtros -->
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 px-3">
+    <div class="d-flex align-items-center gap-2">
+        <label class="form-label m-0">Price Range:</label>
+        <input type="number" class="form-control" style="width: 100px;" @bind="minPrice" @oninput="ApplyFilters" @onblur="ApplyFilters" />
+        <span>to</span>
+        <input type="number" class="form-control" style="width: 100px;" @bind="maxPrice" @oninput="ApplyFilters" @onblur="ApplyFilters" />
+    </div>
+
+    <div>
+        <select class="form-select" style="width: 200px;" @bind="sortOption" @oninput="ApplyFilters">
+            <option value="price-desc">Price (Low to High)</option>
+            <option value="price-asc">Price (High to Low)</option>
+            <option value="name-desc">Name (A-Z)</option>
+            <option value="name-asc">Name (Z-A)</option>
+            <option value="date-desc">Date (Oldest First)</option>
+            <option value="date-asc">Date (Newest First)</option>
+        </select>
+    
+    
+
+</div>
+</div>
+
+@if (pagedProducts.Any())
+{
+    <div class="d-grid gap-4" style="grid-template-columns: repeat(5, 1fr);">
+        @foreach (var product in pagedProducts)
+        {
+            var price = product.Prices?.OrderBy(p => p.Value).FirstOrDefault();
+            var storeCount = product.Prices?.Select(p => p.StoreID).Distinct().Count() ?? 0;
+
+            <div class="card shadow-sm border-0 h-100" style="cursor: pointer;" @onclick="@(() => NavigateToProduct(product.ID))">
+                <img src="@(product.Images?.FirstOrDefault()?.UrlImage ?? "/images/default.png")"
+                     class="card-img-top p-3"
+                     style="height: 200px; object-fit: contain;"
+                     alt="@product.Name" />
+
+                <div class="card-body d-flex flex-column justify-content-between">
+                    <h6 class="card-title text-truncate">@product.Name</h6>
+                    <p class="mb-1"><strong>@(price?.Value.ToString("C2") ?? "N/A")</strong></p>
+                    <small class="text-muted">in @storeCount store@(storeCount == 1 ? "" : "s")</small>
+                </div>
+            </div>
+        }
+    </div>
+
+    @if (TotalPages > 1)
+    {
+        <div class="mt-4 d-flex justify-content-center">
+            @for (int i = 1; i <= TotalPages; i++)
+            {
+                <button class="btn @(i == CurrentPage ? "btn-primary" : "btn-outline-primary") mx-1"
+                        @onclick="@(() => SetPage(i))">@i</button>
+            }
+        </div>
+    }
+}
+else
+{
+    <div class="d-flex flex-column align-items-center justify-content-center mt-5">
+        <img src="images/ProductsNotFound.png" alt="No products" style="max-width: 600px; width: 100%;" />
+    </div>
+}
+
+@code {
+    [Parameter] public string CategoryName { get; set; } = string.Empty;
+
+    private List<Product> allProducts = new();
+    private List<Product> pagedProducts = new();
+    private const int ProductsPerPage = 50;
+    private int CurrentPage = 1;
+    private int TotalPages = 1;
+
+    private double minPrice = 0;
+    private double maxPrice = 9999;
+    private string sortOption = "price-asc";
+
+    protected override async Task OnInitializedAsync()
+    {
+        allProducts = (await ProductService.GetAllProductsAsync())
+            .Where(p => p.Category?.Name?.ToLower() == CategoryName.ToLower())
+            .ToList();
+
+        var allPrices = allProducts.SelectMany(p => p.Prices ?? new List<Price>()).ToList();
+        if (allPrices.Any())
+        {
+            minPrice = 0;
+            maxPrice = Math.Ceiling(allPrices.Max(p => p.Value)) + 1;
+        }
+
+        ApplyFilters();
+    }
+
+    private void SetPage(int page)
+    {
+        CurrentPage = page;
+        pagedProducts = filteredProducts
+            .Skip((CurrentPage - 1) * ProductsPerPage)
+            .Take(ProductsPerPage)
+            .ToList();
+    }
+
+    private List<Product> filteredProducts = new();
+
+    private void ApplyFilters()
+    {
+        filteredProducts = allProducts
+            .Where(p => {
+                var price = p.Prices?.OrderBy(pr => pr.Value).FirstOrDefault();
+                return price == null || (price.Value >= minPrice && price.Value <= maxPrice);
+            })
+            .ToList();
+
+        filteredProducts = sortOption switch
+        {
+            "price-asc" => filteredProducts.OrderBy(p => p.Prices?.OrderBy(pr => pr.Value).FirstOrDefault()?.Value ?? double.MaxValue).ToList(),
+            "price-desc" => filteredProducts.OrderByDescending(p => p.Prices?.OrderBy(pr => pr.Value).FirstOrDefault()?.Value ?? double.MinValue).ToList(),
+            "name-asc" => filteredProducts.OrderBy(p => p.Name).ToList(),
+            "name-desc" => filteredProducts.OrderByDescending(p => p.Name).ToList(),
+            "date-asc" => filteredProducts.OrderBy(p => p.Registration_Date).ToList(),
+            "date-desc" => filteredProducts.OrderByDescending(p => p.Registration_Date).ToList(),
+            _ => filteredProducts
+        };
+
+        TotalPages = (int)Math.Ceiling((double)filteredProducts.Count / ProductsPerPage);
+        SetPage(1);
+    }
+
+    private void NavigateToProduct(int id)
+    {
+        Navigation.NavigateTo($"/moreinfo-product/{id}");
+    }
+}

@@ -1,9 +1,9 @@
-﻿@inject AuthenticationStateProvider _authStateProvider
+﻿@inject NavigationManager NavigationManager
 
 <nav class="navbar navbar-expand-md navbar-dark" style="background-color: #2962FF; padding: 0.75rem 0;">
     <div class="d-flex justify-content-between align-items-center w-100 px-4">
         <div class="d-flex align-items-center">
-            <button class="btn btn-link text-white me-3 p-0" type="button">
+            <button class="btn btn-link text-white me-3 p-0" type="button" @onclick="ToggleMenu">
                 <i class="bi bi-list" style="font-size: 1.5rem;"></i>
             </button>
 
@@ -15,14 +15,13 @@
         <div class="flex-grow-1 mx-3 mb-2 mb-md-0" style="max-width: 500px;">
             <div class="d-flex align-items-center position-relative">
                 <input type="text" class="form-control rounded-pill px-4"
-                       placeholder="Search for a Product, Store, Category..." @bind="_searchText" @bind:event="oninput"
-                       style="width: 100%; padding: 10px 20px;">
+                       placeholder="Search for a Product, Store, Category...">
                 <span class="position-absolute end-0 pe-3 text-muted">
                     <i class="bi bi-search"></i>
                 </span>
             </div>
         </div>
-        
+
         <div class="d-flex align-items-center text-white">
             <AuthorizeView>
                 <Authorized>
@@ -51,19 +50,16 @@
                     </NavLink>
                 </NotAuthorized>
             </AuthorizeView>
-
         </div>
     </div>
 </nav>
 
-@code
+@if (showMenu)
 {
-    private string _searchText = string.Empty;
+    <CategoryMenu OnClose="ToggleMenu" />
+}
 
-    private async Task OnSearchTextChanged(ChangeEventArgs e)
-    {
-        _searchText = e.Value.ToString();
-        await Task.Delay(500); // Simulate a delay for the search
-        // Perform search logic here
-    }
+@code {
+    private bool showMenu = false;
+    private void ToggleMenu() => showMenu = !showMenu;
 }

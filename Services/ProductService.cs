@@ -170,10 +170,6 @@ public class ProductService : IProductService
 
         return product;
     }
-
-    
-    
-    
     
     
     public async Task<List<Category>> GetAllCategoriesAsync()
