@@ -8,6 +8,8 @@
 
     <ItemGroup>
       <PackageReference Include="FontAwesome" Version="4.7.0" />
+      <PackageReference Include="leaflet" Version="0.7.3" />
+      <PackageReference Include="LeafletBlazor" Version="0.0.4.1" />
       <PackageReference Include="Microsoft.AspNetCore.Http.Abstractions" Version="2.3.0" />
       <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.10" />
       <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.3" />
@@ -29,6 +31,7 @@
       <_ContentIncludedByDefault Remove="Components\Pages\Account\AccessDenied.razor" />
       <_ContentIncludedByDefault Remove="Components\Pages\Account\Login.razor" />
       <_ContentIncludedByDefault Remove="Components\Pages\Account\Logout.razor" />
+      <_ContentIncludedByDefault Remove="wwwroot\images\LogoEmBranco.png" />
     </ItemGroup>
 
 </Project>

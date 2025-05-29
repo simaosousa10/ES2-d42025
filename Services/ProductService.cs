@@ -1,4 +1,5 @@
 ﻿using ESIID42025.Data;
+using ESIID42025.DTOs;
 using ESIID42025.Models;
 using ESIID42025.Services.Strategies;
 using Microsoft.EntityFrameworkCore;
@@ -21,6 +22,7 @@ public class ProductService : IProductService
             .Include(p => p.Prices)
             .Include(p => p.StoreProducts)
             .Include(p => p.Images)
+            .Include(p => p.Category)
             .ToListAsync();
         return result;
     }
@@ -169,10 +171,6 @@ public class ProductService : IProductService
 
         return product;
     }
-
-    
-    
-    
     
     
     public async Task<List<Category>> GetAllCategoriesAsync()
@@ -332,6 +330,63 @@ public class ProductService : IProductService
             .Where(pc => pc.PriceID == priceId)
             .ToListAsync();
     }
+    
+    
+    public async Task<List<SearchSuggestion>> GetSearchSuggestionsAsync(string term)
+    {
+        term = term.ToLower();
+
+        var productResults = await _context.Products
+            .Where(p => p.Name.ToLower().Contains(term))
+            .Select(p => new SearchSuggestion { Text = p.Name, Type = "product", Id = p.ID})
+            .Distinct()
+            .Take(5)
+            .ToListAsync();
+
+        var categoryResults = await _context.Categories
+            .Where(c => c.Name.ToLower().Contains(term))
+            .Select(c => new SearchSuggestion { Text = c.Name, Type = "category" })
+            .Distinct()
+            .Take(5)
+            .ToListAsync();
+
+        var storeResults = await _context.Stores
+            .Where(s => s.Name.ToLower().Contains(term))
+            .Select(s => new SearchSuggestion { Text = s.Name, Type = "store", Id = s.ID})
+            .Distinct()
+            .Take(5)
+            .ToListAsync();
+
+        return productResults
+            .Concat(categoryResults)
+            .Concat(storeResults)
+            .ToList();
+    }
+
+    
+    public async Task<List<Product>> GetProductsByStoreIdAsync(int storeId)
+    {
+        return await _context.Products
+            .Include(p => p.Images)
+            .Include(p => p.Prices.Where(pr => pr.StoreID == storeId))
+            .Include(p => p.Category)
+            .Where(p => p.Prices.Any(pr => pr.StoreID == storeId))
+            .ToListAsync();
+    }
+    
+    public async Task<List<Product>> GetProductsByStoreIdIncludingNoPricesAsync(int storeId)
+    {
+        return await _context.Products
+            .Include(p => p.Prices.Where(price => price.StoreID == storeId))
+            .Include(p => p.Category)
+            .Include(p => p.Images)
+            .Where(p => p.Prices.Any(p => p.StoreID == storeId) || !_context.Prices.Any(pr => pr.ProductID == p.ID))
+            .ToListAsync();
+    }
+
+
+
+
     
     
     public class ProductWithPriceDto

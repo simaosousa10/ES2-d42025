@@ -1,0 +1,51 @@
+﻿@inject NavigationManager NavigationManager
+@inject IProductService ProductService
+
+@if (visible)
+{
+    <div class="category-overlay" @onclick="OnClose"></div>
+    <div class="category-menu">
+        <div class="menu-header d-flex justify-content-between align-items-center">
+            <span class="fw-bold">MENU</span>
+            <button class="btn" @onclick="OnClose">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+
+        <ul class="list-group list-group-flush">
+            @foreach (var category in categories)
+            {
+                <li class="list-group-item list-group-item-action" style="cursor: pointer;" @onclick="() => NavigateToCategory(category.Name)">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span>@category.Name</span>
+                        <i class="bi bi-chevron-right text-primary fw-bold fs-5"></i>
+                    </div>
+                </li>
+            }
+        </ul>
+
+    </div>
+}
+
+@code {
+    [Parameter] public EventCallback OnClose { get; set; }
+    private List<Category> categories = new();
+    private bool visible = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var products = await ProductService.GetAllProductsAsync();
+        categories = products
+            .Where(p => p.Category != null)
+            .Select(p => p.Category!)
+            .DistinctBy(c => c.ID)
+            .OrderBy(c => c.Name)
+            .ToList();
+    }
+
+    private void NavigateToCategory(string categoryName)
+    {
+        OnClose.InvokeAsync();
+        NavigationManager.NavigateTo($"/category/{categoryName}");
+    }
+}

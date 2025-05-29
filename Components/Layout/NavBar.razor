@@ -1,0 +1,184 @@
+﻿@inject NavigationManager NavigationManager
+@inject IProductService ProductService
+@using ESIID42025.DTOs
+@rendermode InteractiveServer
+
+<nav class="navbar navbar-expand-md navbar-dark" style="background-color: #2962FF; padding: 0.75rem 0;">
+    <div class="d-flex justify-content-between align-items-center w-100 px-4">
+        <div class="d-flex align-items-center">
+            <button class="btn btn-link text-white me-3 p-0" type="button" @onclick="ToggleMenu">
+                <i class="bi bi-list" style="font-size: 1.5rem;"></i>
+            </button>
+
+            <a class="navbar-brand d-flex align-items-center" href="/">
+                <img src="/images/LogoEmBranco.png" alt="Logo" width="130" height="32" class="me-2" />
+            </a>
+        </div>
+
+        <div class="flex-grow-1 mx-3 mb-2 mb-md-0" style="max-width: 500px;">
+            <div class="d-flex align-items-center position-relative">
+                <input class="form-control rounded-pill px-4"
+                       placeholder="Search for a Product, Store, Category...."
+                       style="width: 500px;"
+                       @bind="searchTerm"
+                       @bind:event="oninput"
+                       @onkeypress="HandleKeyPress"/>
+
+
+                <span class="position-absolute end-0 pe-3 text-muted" style="cursor: pointer;" @onclick="() => HandleSearch(searchTerm)">
+                    <i class="bi bi-search"></i>
+                </span>
+
+                @if (suggestions.Any())
+                {
+                    <ul class="list-group position-absolute mt-2 shadow-sm" style="top: 100%; width: 100%; z-index: 1000;">
+                        @foreach (var suggestion in suggestions)
+                        {
+                            <li class="list-group-item list-group-item-action d-flex align-items-center"
+                                @onclick="() => HandleSearch(suggestion.Text, suggestion.Type, suggestion.Id)">
+                                <i class="@GetIconClass(suggestion.Type) me-2 text-primary"></i>
+                                <span class="text-muted me-1 fw-semibold">
+                                    @(
+                                    suggestion.Type switch
+                                    {
+                                        "category" => "Categoria:",
+                                        "store" => "Loja:",
+                                        _ => "Produto:"
+                                    }
+                                    )
+                                </span>
+                                <span>@suggestion.Text</span>
+                            </li>
+                        }
+
+                    </ul>
+                }
+            </div>
+        </div>
+
+        <div class="d-flex align-items-center text-white">
+            <AuthorizeView>
+                <Authorized>
+                    @{
+                        var user = context.User;
+                    }
+
+                    <NavLink href="Account/Manage" class="d-flex align-items-center text-white text-decoration-none">
+                        @if (user.IsInRole("Admin"))
+                        {
+                            <span class="small d-none d-md-inline me-5">Admin Features</span>
+                        }
+                        else if (user.IsInRole("UserManager"))
+                        {
+                            <span class="small d-none d-md-inline me-4">UserManager Features</span>
+                        }
+
+                        <i class="bi bi-person-circle me-2" style="font-size: 1.6rem;"></i>
+                        <span class="small d-none d-md-inline">Welcome, @user.Identity?.Name</span>
+                    </NavLink>
+                </Authorized>
+
+                <NotAuthorized>
+                    <NavLink href="Account/login" class="d-flex align-items-center text-white text-decoration-none">
+                        <i class="bi bi-person-circle" style="font-size: 1.6rem;"></i>
+                    </NavLink>
+                </NotAuthorized>
+            </AuthorizeView>
+        </div>
+    </div>
+</nav>
+
+@if (showMenu)
+{
+    <CategoryMenu OnClose="ToggleMenu" />
+}
+
+@code {
+    private string _searchTerm = "";
+    private string searchTerm
+    {
+        get => _searchTerm;
+        set
+        {
+            _searchTerm = value;
+            if (!suppressSearchTrigger)
+            {
+                TriggerSearch();
+            }
+        }
+    }
+
+    private bool showMenu = false;
+    private List<SearchSuggestion> suggestions = new();
+    private System.Timers.Timer debounceTimer;
+    private bool suppressSearchTrigger = false;
+
+    private void ToggleMenu() => showMenu = !showMenu;
+
+    private string GetIconClass(string type) => type switch
+    {
+        "store" => "bi bi-shop",
+        "category" => "bi bi-tags",
+        _ => "bi bi-bag-check"
+    };
+
+    private void HandleKeyPress(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(searchTerm))
+        {
+            var encodedTerm = Uri.EscapeDataString(searchTerm.Trim());
+            NavigationManager.NavigateTo($"/search/{encodedTerm}");
+            ClearSuggestions();
+        }
+    }
+
+    private void TriggerSearch()
+    {
+        debounceTimer?.Stop();
+
+        if (debounceTimer != null)
+            debounceTimer.Elapsed -= OnDebounceElapsed;
+
+        debounceTimer = new System.Timers.Timer(300);
+        debounceTimer.Elapsed += OnDebounceElapsed;
+        debounceTimer.AutoReset = false;
+        debounceTimer.Start();
+    }
+
+    private async void OnDebounceElapsed(object sender, System.Timers.ElapsedEventArgs e)
+    {
+        var result = await ProductService.GetSearchSuggestionsAsync(searchTerm);
+        await InvokeAsync(() =>
+        {
+            suggestions = result;
+            StateHasChanged();
+        });
+    }
+
+    private void HandleSearch(string input, string type = "", int? id = null)
+    {
+        if (string.IsNullOrWhiteSpace(input))
+            return;
+
+        if (type == "category")
+            NavigationManager.NavigateTo($"/category/{Uri.EscapeDataString(input)}");
+        else if (type == "store")
+            NavigationManager.NavigateTo($"/store/{id}");
+        else if (type == "product")
+            NavigationManager.NavigateTo($"/moreinfo-product/{id}");
+        else
+            NavigationManager.NavigateTo($"/search/{Uri.EscapeDataString(input)}");
+
+        ClearSuggestions();
+    }
+
+    private void ClearSuggestions()
+    {
+        suppressSearchTrigger = true;
+        searchTerm = "";
+        suggestions.Clear();
+        suppressSearchTrigger = false;
+    }
+}
+
+

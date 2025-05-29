@@ -1,9 +1,169 @@
 ﻿@page "/"
-@inject NavigationManager NavigationManager
+@using ESIID42025.Models
+@inject IProductService ProductService
+@inject IJSRuntime JSRuntime
+@rendermode InteractiveServer
+
+<h1 class="visually-hidden">Home</h1>
+
+<!-- Banner -->
+<div class="container-fluid px-4 mt-4">
+    <div class="p-4 rounded shadow text-white" style="background: linear-gradient(90deg, #2962FF, #5C8DFF);">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h2 class="fw-bold mb-2">
+                    <i class="bi bi-lightning-fill me-2"></i>
+                    Discover the Best Deals Instantly
+                </h2>
+                <p class="mb-0">Smart shopping starts here — compare prices and save with <strong>DealRadar</strong>.</p>
+            </div>
+            <img src="/images/LogoEmBranco.png" alt="DealRadar" style="height: 60px;" />
+        </div>
+    </div>
+</div>
+
+<!-- Lista de Produtos por Categoria -->
+<div class="container-fluid px-4 mt-5">
+    @foreach (var category in allCategories)
+    {
+        var categoryId = category.ID;
+        var productsInCategory = allProducts.Where(p => p.Category?.ID == categoryId).ToList();
+        var totalPages = (int)Math.Ceiling((double)productsInCategory.Count / itemsPerPage);
+
+        if (!productsInCategory.Any()) continue;
+
+        <div class="mb-5">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4>@category.Name</h4>
+                <a href="/category/@category.Name" class="text-primary fw-semibold">See More &gt;</a>
+            </div>
+
+            <div class="position-relative">
+                <div class="d-flex justify-content-center overflow-hidden" style="gap: 2rem; width: 100%;">
+                    <div class="d-flex" style="gap: 2rem; width: 100%; justify-content: start;">
+                        @foreach (var product in GetPagedProducts(categoryId))
+                        {
+                            <div class="card" style="width: 240px; flex: 0 0 auto;">
+                                <img src="@(product.Images?.FirstOrDefault()?.UrlImage ?? "/images/default.png")"
+                                     class="card-img-top p-3"
+                                     alt="@product.Name"
+                                     style="height: 200px; object-fit: contain;" />
+                                <div class="card-body d-flex flex-column justify-content-between">
+                                    <div>
+                                        <h6 class="card-title">@product.Name</h6>
+                                        <p class="card-text mb-3">
+                                            from <strong>@(product.Prices?.OrderBy(p => p.Value).FirstOrDefault()?.Value.ToString("C2") ?? "N/A")</strong>
+                                        </p>
+                                    </div>
+                                    <a href="/moreinfo-product/@product.ID"
+                                       class="btn btn-primary rounded-pill w-100 text-center">
+                                        Details
+                                    </a>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+
+                @if (currentPageByCategory[categoryId] > 0)
+                {
+                    <button class="btn btn-light rounded-circle shadow position-absolute start-0 top-50 translate-middle-y"
+                            style="width: 40px; height: 40px; font-size: 1.25rem; z-index: 1;"
+                            @onclick="() => ChangePage(categoryId, -1)">
+                        <i class="bi bi-chevron-left"></i>
+                    </button>
+                }
+
+                @if (currentPageByCategory[categoryId] < totalPages - 1)
+                {
+                    <button class="btn btn-light rounded-circle shadow position-absolute end-0 top-50 translate-middle-y"
+                            style="width: 40px; height: 40px; font-size: 1.25rem; z-index: 1;"
+                            @onclick="() => ChangePage(categoryId, 1)">
+                        <i class="bi bi-chevron-right"></i>
+                    </button>
+                }
+            </div>
+        </div>
+    }
+</div>
 
 @code {
-    protected override void OnInitialized()
+    private List<Product> allProducts = new();
+    private List<Category> allCategories = new();
+    private Dictionary<int, int> currentPageByCategory = new();
+    private Dictionary<int, CategoryRef> categoryRefs = new();
+    private const int itemsPerPage = 5;
+
+    private class CategoryRef
     {
-        NavigationManager.NavigateTo("/DashBoard", true);
+        public ElementReference ScrollRef { get; set; }
+    }
+
+    private CategoryRef GetOrCreateCategoryRef(int categoryId)
+    {
+        if (!categoryRefs.ContainsKey(categoryId))
+            categoryRefs[categoryId] = new CategoryRef();
+
+        return categoryRefs[categoryId];
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        allProducts = await ProductService.GetAllProductsAsync();
+        allCategories = allProducts
+            .Where(p => p.Category != null)
+            .Select(p => p.Category!)
+            .DistinctBy(c => c.ID)
+            .OrderBy(c => c.Name)
+            .ToList();
+
+        foreach (var cat in allCategories)
+        {
+            currentPageByCategory[cat.ID] = 0;
+        }
+    }
+
+    private List<Product> GetPagedProducts(int categoryId)
+    {
+        var page = currentPageByCategory[categoryId];
+        return allProducts
+            .Where(p => p.Category?.ID == categoryId)
+            .Skip(page * itemsPerPage)
+            .Take(itemsPerPage)
+            .ToList();
+    }
+
+    private async Task ChangePage(int categoryId, int delta)
+    {
+        var productsInCategory = allProducts.Where(p => p.Category?.ID == categoryId).ToList();
+        var totalPages = (int)Math.Ceiling((double)productsInCategory.Count / itemsPerPage);
+
+        var newPage = currentPageByCategory[categoryId] + delta;
+        if (newPage >= 0 && newPage < totalPages)
+        {
+            currentPageByCategory[categoryId] = newPage;
+            await ScrollToStart(categoryId);
+        }
+    }
+
+    private async Task GoToPage(int categoryId, int page)
+    {
+        var productsInCategory = allProducts.Where(p => p.Category?.ID == categoryId).ToList();
+        var totalPages = (int)Math.Ceiling((double)productsInCategory.Count / itemsPerPage);
+
+        if (page >= 0 && page < totalPages)
+        {
+            currentPageByCategory[categoryId] = page;
+            await ScrollToStart(categoryId);
+        }
+    }
+
+    private async Task ScrollToStart(int categoryId)
+    {
+        if (categoryRefs.TryGetValue(categoryId, out var catRef))
+        {
+            await JSRuntime.InvokeVoidAsync("smoothScrollToStart", catRef.ScrollRef);
+        }
     }
 }
