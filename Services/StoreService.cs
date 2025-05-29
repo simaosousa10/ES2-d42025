@@ -1,12 +1,18 @@
 ﻿using ESIID42025.Models;
 using System.Net.Http.Json;
+using ESIID42025.Data;
+using ESIID42025.DTOs;
+using ESIID42025.Services;
+using Microsoft.EntityFrameworkCore;
 
 public class StoreService
 {
     private readonly HttpClient _httpClient;
+    private readonly ApplicationDbContext _context;
 
-    public StoreService(HttpClient httpClient)
+    public StoreService(ApplicationDbContext context ,HttpClient httpClient)
     {
+        _context = context;
         _httpClient = httpClient;
     }
 
@@ -50,4 +56,5 @@ public class StoreService
             throw new Exception($"Failed to delete store: {response.StatusCode} - {content}");
         }
     }
+
 }

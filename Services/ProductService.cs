@@ -352,7 +352,7 @@ public class ProductService : IProductService
 
         var storeResults = await _context.Stores
             .Where(s => s.Name.ToLower().Contains(term))
-            .Select(s => new SearchSuggestion { Text = s.Name, Type = "store" })
+            .Select(s => new SearchSuggestion { Text = s.Name, Type = "store", Id = s.ID})
             .Distinct()
             .Take(5)
             .ToListAsync();
@@ -362,6 +362,29 @@ public class ProductService : IProductService
             .Concat(storeResults)
             .ToList();
     }
+
+    
+    public async Task<List<Product>> GetProductsByStoreIdAsync(int storeId)
+    {
+        return await _context.Products
+            .Include(p => p.Images)
+            .Include(p => p.Prices.Where(pr => pr.StoreID == storeId))
+            .Include(p => p.Category)
+            .Where(p => p.Prices.Any(pr => pr.StoreID == storeId))
+            .ToListAsync();
+    }
+    
+    public async Task<List<Product>> GetProductsByStoreIdIncludingNoPricesAsync(int storeId)
+    {
+        return await _context.Products
+            .Include(p => p.Prices.Where(price => price.StoreID == storeId))
+            .Include(p => p.Category)
+            .Include(p => p.Images)
+            .Where(p => p.Prices.Any(p => p.StoreID == storeId) || !_context.Prices.Any(pr => pr.ProductID == p.ID))
+            .ToListAsync();
+    }
+
+
 
 
     

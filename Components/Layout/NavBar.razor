@@ -101,17 +101,20 @@
         set
         {
             _searchTerm = value;
-            TriggerSearch();
+            if (!suppressSearchTrigger)
+            {
+                TriggerSearch();
+            }
         }
     }
 
     private bool showMenu = false;
     private List<SearchSuggestion> suggestions = new();
     private System.Timers.Timer debounceTimer;
-    
+    private bool suppressSearchTrigger = false;
 
     private void ToggleMenu() => showMenu = !showMenu;
-    
+
     private string GetIconClass(string type) => type switch
     {
         "store" => "bi bi-shop",
@@ -119,13 +122,13 @@
         _ => "bi bi-bag-check"
     };
 
-
     private void HandleKeyPress(KeyboardEventArgs e)
     {
         if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(searchTerm))
         {
             var encodedTerm = Uri.EscapeDataString(searchTerm.Trim());
             NavigationManager.NavigateTo($"/search/{encodedTerm}");
+            ClearSuggestions();
         }
     }
 
@@ -154,18 +157,28 @@
 
     private void HandleSearch(string input, string type = "", int? id = null)
     {
-        suggestions.Clear();
-
         if (string.IsNullOrWhiteSpace(input))
             return;
 
         if (type == "category")
             NavigationManager.NavigateTo($"/category/{Uri.EscapeDataString(input)}");
         else if (type == "store")
-            NavigationManager.NavigateTo($"/store/{Uri.EscapeDataString(input)}");
+            NavigationManager.NavigateTo($"/store/{id}");
         else if (type == "product")
             NavigationManager.NavigateTo($"/moreinfo-product/{id}");
         else
             NavigationManager.NavigateTo($"/search/{Uri.EscapeDataString(input)}");
+
+        ClearSuggestions();
+    }
+
+    private void ClearSuggestions()
+    {
+        suppressSearchTrigger = true;
+        searchTerm = "";
+        suggestions.Clear();
+        suppressSearchTrigger = false;
     }
 }
+
+

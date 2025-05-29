@@ -1,100 +1,161 @@
 ﻿@page "/search/{term}"
 @using ESIID42025.Data
 @using ESIID42025.Models
+@using Microsoft.EntityFrameworkCore
 @inject ApplicationDbContext Db
-@inject NavigationManager NavigationManager
+@inject NavigationManager Navigation
 @rendermode InteractiveServer
 
-
-
-@if (filteredProducts == null)
+@if (pagedProducts == null)
 {
     <p class="text-center">A carregar...</p>
 }
-else if (!filteredProducts.Any())
+else if (!pagedProducts.Any())
 {
     <div class="text-center mt-5">
         <img src="images/ProductsNotFound.png" alt="Sem resultados" class="img-fluid" style="max-height: 500px;" />
-        
     </div>
 }
 else
 {
     <h3 class="text-center mt-4">Resultados para: "@term"</h3>
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 px-3">
+        <div class="d-flex align-items-center gap-2">
+            <label class="form-label m-0">Price Range:</label>
+            <input type="number" class="form-control" style="width: 100px;" @bind="minPrice" @oninput="(e) => ApplyFilters()" @onblur="ApplyFilters"/>
+            <span>to</span>
+            <input type="number" class="form-control" style="width: 100px;" @bind="maxPrice" @oninput="(e) => ApplyFilters()" @onblur="ApplyFilters"/>
+        </div>
+
+        <div>
+            <select class="form-select" style="width: 200px;" @onchange="OnSortOptionChanged">
+                <option value="price-asc">Price (Low to High)</option>
+                <option value="price-desc">Price (High to Low)</option>
+                <option value="name-asc">Name (A-Z)</option>
+                <option value="name-desc">Name (Z-A)</option>
+                <option value="date-asc">Date (Oldest First)</option>
+                <option value="date-desc">Date (Newest First)</option>
+            </select>
+
+        </div>
+    </div>
+
     <div class="container mt-4">
-        <div class="row justify-content-center">
-            @foreach (var product in filteredProducts)
+        <div class="d-grid gap-4" style="grid-template-columns: repeat(5, 1fr);">
+            @foreach (var product in pagedProducts)
             {
-                <div class="col-6 col-md-4 col-lg-2 mb-4 d-flex justify-content-center">
-                    <div class="card shadow-sm" style="width: 180px;">
-                        <img src="@(product.Images?.FirstOrDefault()?.UrlImage ?? "/images/default.png")"
-                             class="card-img-top p-3"
-                             style="height: 200px; object-fit: contain;"
-                             alt="@product.Name" />                        <div class="card-body p-2">
-                            <h6 class="card-title text-truncate">@product.Name</h6>
-                            <p class="mb-1 text-primary fw-semibold">
-                                @GetLowestPrice(product)
-                            </p>
-                            <p class="mb-2 text-muted small">
-                                @GetStoreCount(product) lojas
-                            </p>
-                            <button class="btn btn-sm btn-outline-primary w-100 rounded-pill"
-                                    @onclick="() => GoToProductDetails(product.ID)">
-                                Details
-                            </button>
-                        </div>
+                var price = product.Prices?.OrderBy(p => p.Value).FirstOrDefault();
+                var storeCount = product.Prices?.Select(p => p.StoreID).Distinct().Count() ?? 0;
+
+                <div class="card shadow-sm border-0 h-100" style="cursor: pointer;" @onclick="() => NavigateToProduct(product.ID)">
+                    <img src="@(product.Images?.FirstOrDefault()?.UrlImage ?? "/images/default.png")"
+                         class="card-img-top p-3"
+                         style="height: 200px; object-fit: contain;"
+                         alt="@product.Name" />
+
+                    <div class="card-body d-flex flex-column justify-content-between">
+                        <h6 class="card-title text-truncate">@product.Name</h6>
+                        <p class="mb-1"><strong>@(price?.Value.ToString("C2") ?? "N/A")</strong></p>
+                        <small class="text-muted">in @storeCount store@(storeCount == 1 ? "" : "s")</small>
                     </div>
                 </div>
             }
         </div>
     </div>
+
+    @if (TotalPages > 1)
+    {
+        <div class="mt-4 d-flex justify-content-center">
+            @for (int i = 1; i <= TotalPages; i++)
+            {
+                <button class="btn @(i == CurrentPage ? "btn-primary" : "btn-outline-primary") mx-1"
+                        @onclick="() => SetPage(i)">@i</button>
+            }
+        </div>
+    }
 }
 
 @code {
     [Parameter]
     public string term { get; set; }
 
-    private List<Product> filteredProducts;
+    private const int ProductsPerPage = 50;
+    private int CurrentPage = 1;
+    private int TotalPages = 1;
+    private List<Product> allProducts = new();
+    private List<Product> filteredProducts = new();
+    private List<Product> pagedProducts = new();
+
+    private double minPrice = 0;
+    private double maxPrice = 9999;
+    private string sortOption = "price-asc";
 
     protected override async Task OnParametersSetAsync()
     {
         if (string.IsNullOrWhiteSpace(term))
         {
-            filteredProducts = new();
+            pagedProducts = new();
             return;
         }
 
         var loweredTerm = term.ToLower();
 
-        filteredProducts = await Task.Run(() =>
-            Db.Products
-              .Where(p =>
-                  p.Name.ToLower().Contains(loweredTerm) ||
-                  p.Category.Name.ToLower().Contains(loweredTerm) ||
-                  p.Prices.Any(pr => pr.Store.Name.ToLower().Contains(loweredTerm))
-              )
-              .Distinct()
-              .ToList()
-        );
+        allProducts = await Db.Products
+            .Include(p => p.Prices).ThenInclude(p => p.Store)
+            .Include(p => p.Category)
+            .Include(p => p.Images)
+            .Where(p =>
+                p.Name.ToLower().Contains(loweredTerm) ||
+                p.Category.Name.ToLower().Contains(loweredTerm) ||
+                p.Prices.Any(pr => pr.Store.Name.ToLower().Contains(loweredTerm)))
+            .ToListAsync();
+
+        ApplyFilters();
     }
 
-    string GetLowestPrice(Product p)
+    private void ApplyFilters()
     {
-        var lowest = p.Prices?.Where(pr => pr.ProductID == p.ID)
-                              .OrderBy(pr => pr.Value)
-                              .FirstOrDefault();
+        filteredProducts = allProducts
+            .Where(p =>
+            {
+                var price = p.Prices?.OrderBy(pr => pr.Value).FirstOrDefault();
+                return price == null || (price.Value >= minPrice && price.Value <= maxPrice);
+            })
+            .ToList();
 
-        return lowest != null ? $"{lowest.Value:C}" : "N/A";
+        filteredProducts = sortOption switch
+        {
+            "price-asc" => filteredProducts.OrderBy(p => p.Prices?.OrderBy(pr => pr.Value).FirstOrDefault()?.Value ?? double.MaxValue).ToList(),
+            "price-desc" => filteredProducts.OrderByDescending(p => p.Prices?.OrderBy(pr => pr.Value).FirstOrDefault()?.Value ?? double.MinValue).ToList(),
+            "name-asc" => filteredProducts.OrderBy(p => p.Name).ToList(),
+            "name-desc" => filteredProducts.OrderByDescending(p => p.Name).ToList(),
+            "date-asc" => filteredProducts.OrderBy(p => p.Registration_Date).ToList(),
+            "date-desc" => filteredProducts.OrderByDescending(p => p.Registration_Date).ToList(),
+            _ => filteredProducts
+        };
+
+        TotalPages = (int)Math.Ceiling((double)filteredProducts.Count / ProductsPerPage);
+        SetPage(CurrentPage);
     }
 
-    int GetStoreCount(Product product) =>
-        product.Prices?.Where(p => p.ProductID == product.ID)
-                       .Select(p => p.StoreID)
-                       .Distinct()
-                       .Count() ?? 0;
-
-    void GoToProductDetails(int productId)
+    private void SetPage(int page)
     {
-        NavigationManager.NavigateTo($"/product/{productId}");
+        CurrentPage = page;
+        pagedProducts = filteredProducts
+            .Skip((CurrentPage - 1) * ProductsPerPage)
+            .Take(ProductsPerPage)
+            .ToList();
+    }
+    
+    private void OnSortOptionChanged(ChangeEventArgs e)
+    {
+        sortOption = e.Value?.ToString();
+        ApplyFilters();
+    }
+
+
+    private void NavigateToProduct(int id)
+    {
+        Navigation.NavigateTo($"/moreinfo-product/{id}");
     }
 }

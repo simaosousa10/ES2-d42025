@@ -34,5 +34,7 @@ public interface IProductService
     Task<List<PriceConfirmation>> GetConfirmationsForPriceAsync(int priceId);
 
     Task<List<SearchSuggestion>> GetSearchSuggestionsAsync(string term);
+    Task<List<Product>> GetProductsByStoreIdAsync(int storeId);
+    Task<List<Product>> GetProductsByStoreIdIncludingNoPricesAsync(int storeId);
 
 }
