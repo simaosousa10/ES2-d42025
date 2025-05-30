@@ -1,0 +1,451 @@
+﻿@page "/product/{id:int}"
+@using ESIID42025.Models
+@inject IProductService ProductService
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+@rendermode InteractiveServer
+
+@if (product == null)
+{
+    <div class="text-center mt-5">
+        <div class="spinner-border text-primary" role="status"></div>
+        <p class="mt-3">A carregar detalhes do produto...</p>
+    </div>
+}
+else
+{
+    <div class="container mt-4">
+        <!-- Breadcrumb -->
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/">Página inicial</a></li>
+                <li class="breadcrumb-item"><a href="/category/@product.Category?.Name">@product.Category?.Name</a></li>
+                <li class="breadcrumb-item active" aria-current="page">@product.Name</li>
+            </ol>
+        </nav>
+
+        <!-- Conteúdo principal -->
+        <div class="row mt-4">
+            <!-- Coluna das imagens -->
+            <div class="col-md-6 d-flex">
+                <div class="me-3 d-flex flex-column align-items-center" style="gap: 10px;">
+                    @for (int i = 0; i < Math.Min(5, productImages.Count); i++)
+                    {
+                        if (i == 4 && productImages.Count > 5)
+                        {
+                            <div class="img-thumb overflow-hidden position-relative" @onclick="() => OpenImageModal(i)" style="width: 60px; height: 60px; cursor: pointer;">
+                                <img src="@productImages[i].UrlImage" class="w-100 h-100 object-fit-contain rounded border" alt="Imagem extra" />
+                                <div class="position-absolute top-0 start-0 w-100 h-100 bg-dark bg-opacity-50 text-white d-flex align-items-center justify-content-center fw-bold">
+                                    +@(productImages.Count - 4)
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="img-thumb" style="width: 60px; height: 60px; cursor: pointer;" @onclick="() => OpenImageModal(i)">
+                                <img src="@productImages[i].UrlImage" class="w-100 h-100 object-fit-contain rounded border" alt="Thumb @i" />
+                            </div>
+                        }
+                    }
+                </div>
+                <div class="flex-fill" @onclick="() => OpenImageModal(0)" style="cursor: pointer;">
+                    <img src="@productImages.FirstOrDefault()?.UrlImage" alt="@product.Name" class="img-fluid rounded border" style="max-height: 320px; object-fit: contain;" />
+                </div>
+            </div>
+
+            <!-- Coluna de detalhes -->
+            <div class="col-md-6 d-flex flex-column justify-content-start position-relative">
+                <h1 class="fw-bold" style="font-size: 2.7rem;">@product.Name</h1>
+                <p class="text-muted fs-7">@product.Description</p>
+                <div class="mt-2">
+                    <a href="/category/@product.Category?.Name" class="text-decoration-none text-dark">
+                        <i class="bi bi-tag"></i> <strong>@product.Category?.Name</strong>
+                    </a>
+                </div>
+                @if (product.Prices?.Any() == true)
+                {
+                    // Obtemos o preço mais recente de cada loja
+                    var preçosAtuais = product.Prices
+                        .GroupBy(p => p.StoreID)
+                        .Select(g => g.OrderByDescending(p => p.Date).First());
+
+                    var bestPriceEntry = preçosAtuais.OrderBy(p => p.Value).FirstOrDefault();
+
+                    <div class="position-absolute" style="bottom: 0; right: 0; text-align: right;">
+                        <p class="mb-1 text-muted">Best Price</p>
+                        <h1 class="text-primary fw-bold" style="font-size: 2.3rem;">@bestPriceEntry?.Value.ToString("C2")</h1>
+                        <small class="text-muted">Sold by <strong>@bestPriceEntry?.Store?.Name</strong></small>
+                    </div>
+                }
+
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <ul class="nav nav-tabs mt-5" id="productTabs">
+            <li class="nav-item">
+                <a class="nav-link @(activeTab == "lojas" ? "active" : "")" @onclick='@(() => SetActiveTab("lojas"))'>Lojas</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link @(activeTab == "historico" ? "active" : "")" @onclick='@(() => SetActiveTab("historico"))'>Histórico de Preço</a>
+            </li>
+        </ul>
+
+        <div class="tab-content border-start border-end border-bottom p-4">
+            @if (activeTab == "lojas")
+            {
+                <div class="d-flex flex-column gap-3">
+                    @foreach (var price in GetLatestPricesByStore())
+                    {
+                        var isBest = price == product.Prices.OrderBy(p => p.Value).FirstOrDefault();
+                        var hasConfirmed = price.PriceConfirmations?.Any(c => c.UserID == currentUserId) == true;
+                        var priceBoxClass = isBest ? "border-primary border-2" : "border-1";
+
+                        <div class="d-flex justify-content-between p-3 rounded-4 border @priceBoxClass shadow-sm bg-white align-items-center">
+                            <!-- Loja + Nome Produto -->
+                            <div>
+                                <h5 class="mb-1">@price.Store?.Name</h5>
+                                <small class="text-muted">@product.Name</small>
+                            </div>
+
+                            <!-- Preço + Confiança -->
+                            <div class="text-center" style="min-width: 150px;">
+                                <div class="fw-bold fs-5 text-primary mb-1">@price.Value.ToString("C2")</div>
+                                <div class="d-flex justify-content-center align-items-center gap-2">
+                                    <span class="text-muted small mb-0">Confiança:</span>
+                                    <span class="rounded-circle d-inline-block" style="width: 12px; height: 12px; background-color:@GetTrustColor(price.TrustScore);"></span>
+                                    <span class="text-muted small">@(price.TrustScore == null ? "N/A" : $"{Math.Round(price.TrustScore)}%")</span>
+                                </div>
+
+                            </div>
+
+                            <!-- Botões -->
+                            @if (isAuthenticated)
+                            {
+                                <div class="text-end" style="min-width: 160px;">
+                                    <button class="btn btn-sm btn-outline-success me-1" style="@(hasConfirmed ? "opacity: 0.5;" : "")"
+
+                                            @onclick="() => ConfirmarPreco(price.ID)"
+                                            disabled="@hasConfirmed">
+                                        Confirmar
+                                    </button>
+
+                                    <button class="btn btn-sm btn-outline-secondary" @onclick="() => EditarPreco(price)">Editar</button>
+                                </div>
+                            }
+                        </div>
+
+                    }
+
+                </div>
+            }
+            else if (activeTab == "historico")
+            {
+                
+                <div>
+                    <h5>Histórico de Preço</h5>
+                    <div class="mb-3">
+                        <button class="btn btn-sm @(selectedRange == "30d" ? "btn-primary" : "btn-outline-primary") me-2"
+                                @onclick="@(() => MudarIntervalo("30d"))">30 dias</button>
+                        <button class="btn btn-sm @(selectedRange == "3m" ? "btn-primary" : "btn-outline-primary")"
+                                @onclick="@(() => MudarIntervalo("3m"))">3 meses</button>
+                    </div>
+
+                    @if (chartLabels.Any())
+                    {
+                        <div class="chart-container">
+                            <canvas id="priceChart"></canvas>
+                        </div>
+                    }
+
+                    else
+                    {
+                        <div class="alert alert-info mt-4" role="alert">
+                            Sem dados de preços disponíveis para este intervalo.
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+
+    @if (showImageModal)
+    {
+        <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0, 0, 0, 0.8);">
+            <div class="modal-dialog modal-xl modal-dialog-centered">
+                <div class="modal-content bg-white p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h5 class="modal-title">@product.Name</h5>
+                        <button type="button" class="btn-close" @onclick="CloseModal"></button>
+                    </div>
+
+                    <div class="d-flex">
+                        <!-- Miniaturas -->
+                        <div class="d-flex flex-column gap-2 me-3">
+                            @for (int i = 0; i < productImages.Count; i++)
+                            {
+                                <img src="@productImages[i].UrlImage"
+                                     class="img-thumb"
+                                     style="width: 60px; height: 60px; object-fit: contain; cursor: pointer; border: @(i == currentImageIndex ? "2px solid red" : "1px solid #ccc")"
+                                     @onclick="() => currentImageIndex = i" />
+                            }
+                        </div>
+
+                        <!-- Imagem principal com suporte a swipe -->
+                        <div class="position-relative flex-fill d-flex justify-content-center align-items-center"
+                             @onmousedown="StartSwipe" @onmouseup="EndSwipe"
+                             @ontouchstart="StartSwipe" @ontouchend="EndSwipe">
+
+                            <button class="btn btn-light position-absolute start-0 z-3" @onclick="PreviousImage">
+                                <i class="bi bi-chevron-left"></i>
+                            </button>
+
+                            <img src="@productImages[currentImageIndex].UrlImage"
+                                 class="img-fluid"
+                                 style="max-height: 500px; object-fit: contain;" />
+
+                            <button class="btn btn-light position-absolute end-0 z-3" @onclick="NextImage">
+                                <i class="bi bi-chevron-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+}
+
+@if (showEditModal)
+{
+    <div class="modal fade show d-block" style="background-color: rgba(0,0,0,0.5);" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content p-3">
+                <div class="modal-header">
+                    <h5 class="modal-title">Editar Preço</h5>
+                    <button type="button" class="btn-close" @onclick="CancelarEdicao"></button>
+                </div>
+                <div class="modal-body">
+                    <label>Preço novo:</label>
+                    <input type="number" step="0.01" class="form-control" @bind="newPriceValue" />
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" @onclick="CancelarEdicao">Cancelar</button>
+                    <button class="btn btn-primary" @onclick="GuardarNovoPreco">Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState> authenticationStateTask { get; set; }
+    private string currentUserId;
+    private bool isAuthenticated = false;
+    [Parameter] public int id { get; set; }
+    private Product product;
+    private List<Image> productImages = new();
+    private bool showImageModal = false;
+    private int currentImageIndex = 0;
+    private double swipeStartX;
+    private string activeTab = "lojas";
+    private List<IGrouping<DateTime, Price>> groupedPrices;
+    private List<string> chartLabels = new();
+    private List<double> avgPrices = new();
+    private List<double> minPrices = new();
+    private string selectedRange = "30d";
+    private bool hasChartData = false;
+
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        product = await ProductService.GetProductWithStorePricesAsync(id);
+        productImages = product.Images?.ToList() ?? new();
+        var authState = await authenticationStateTask;
+        var user = authState.User;
+        isAuthenticated = user.Identity.IsAuthenticated;
+        currentUserId = user.FindFirst(c => c.Type.Contains("nameidentifier"))?.Value;
+        PrepararDadosGrafico();
+    }
+
+    private async Task MudarIntervalo(string range)
+    {
+        selectedRange = range;
+        PrepararDadosGrafico();
+        await JS.InvokeVoidAsync("updatePriceChart", chartLabels, avgPrices, minPrices);
+    }
+
+    private async void SetActiveTab(string tab)
+    {
+        activeTab = tab;
+
+        if (tab == "historico")
+        {
+            PrepararDadosGrafico();
+
+            await Task.Yield(); // Aguarda renderização do DOM
+            await JS.InvokeVoidAsync("updatePriceChart", chartLabels, avgPrices, minPrices);
+        }
+    }
+
+
+    private void PrepararDadosGrafico()
+    {
+        if (product?.Prices == null || product.Prices.Count == 0)
+        {
+            Console.WriteLine("[DEBUG] Não existem preços para este produto.");
+            chartLabels = new();
+            avgPrices = new();
+            minPrices = new();
+            return;
+        }
+
+        var dataLimite = selectedRange == "3m"
+            ? DateTime.UtcNow.Date.AddMonths(-3)
+            : DateTime.UtcNow.Date.AddDays(-30);
+
+        var hoje = DateTime.UtcNow.Date;
+        var todasDatas = Enumerable.Range(0, (hoje - dataLimite).Days + 1)
+            .Select(offset => dataLimite.AddDays(offset))
+            .ToList();
+
+        chartLabels = new();
+        avgPrices = new();
+        minPrices = new();
+
+        foreach (var data in todasDatas)
+        {
+            // Para cada loja, obtemos o preço mais recente até à data atual
+            var preçosNoDia = product.Prices
+                .Where(p => p.Date.Date <= data && p.Store != null)
+                .GroupBy(p => p.StoreID)
+                .Select(g => g.OrderByDescending(p => p.Date).First())
+                .ToList();
+
+            if (preçosNoDia.Any())
+            {
+                chartLabels.Add(data.ToString("dd/MM"));
+                avgPrices.Add(Math.Round(preçosNoDia.Average(p => p.Value), 2));
+                minPrices.Add(Math.Round(preçosNoDia.Min(p => p.Value), 2));
+            }
+        }
+
+        Console.WriteLine($"[DEBUG] Labels: {string.Join(", ", chartLabels)}");
+        Console.WriteLine($"[DEBUG] Médias: {string.Join(", ", avgPrices)}");
+        Console.WriteLine($"[DEBUG] Mínimos: {string.Join(", ", minPrices)}");
+    }
+    
+    private void OpenImageModal(int index)
+    {
+        currentImageIndex = index;
+        showImageModal = true;
+    }
+
+    private void CloseModal()
+    {
+        showImageModal = false;
+    }
+
+    private void NextImage()
+    {
+        if (currentImageIndex < productImages.Count - 1)
+            currentImageIndex++;
+    }
+
+    private void PreviousImage()
+    {
+        if (currentImageIndex > 0)
+            currentImageIndex--;
+    }
+
+    private void StartSwipe(MouseEventArgs e)
+    {
+        swipeStartX = e.ClientX;
+    }
+
+    private void EndSwipe(MouseEventArgs e)
+    {
+        var deltaX = e.ClientX - swipeStartX;
+        if (Math.Abs(deltaX) > 50)
+        {
+            if (deltaX < 0) NextImage();
+            else PreviousImage();
+        }
+    }
+
+    private void StartSwipe(TouchEventArgs e)
+    {
+        swipeStartX = e.Touches.FirstOrDefault().ClientX;
+    }
+
+    private void EndSwipe(TouchEventArgs e)
+    {
+        var deltaX = e.ChangedTouches.FirstOrDefault().ClientX - swipeStartX;
+        if (Math.Abs(deltaX) > 50)
+        {
+            if (deltaX < 0) NextImage();
+            else PreviousImage();
+        }
+    }
+    
+    private async Task ConfirmarPreco(int priceId)
+    {
+        await ProductService.AddPriceConfirmationAsync(priceId, currentUserId);
+        product = await ProductService.GetProductWithStorePricesAsync(product.ID);
+        StateHasChanged();
+    }
+    
+    private string GetTrustColor(double? trust)
+    {
+        if (trust == null)
+            return "#6c757d";
+        
+        var value = Math.Round(trust ?? 0);
+        return value switch
+        {
+            >= 80 => "#198754", // verde
+            >= 50 => "#ffc107", // amarelo
+            _ => "#dc3545"      // vermelho
+        };
+    }
+
+    private bool showEditModal = false;
+    private Price selectedPriceToEdit;
+    private double newPriceValue = 0;
+
+    private void EditarPreco(Price price)
+    {
+        selectedPriceToEdit = price;
+        newPriceValue = price.Value;
+        showEditModal = true;
+    }
+
+    private void CancelarEdicao()
+    {
+        showEditModal = false;
+        selectedPriceToEdit = null;
+        newPriceValue = 0;
+    }
+
+    private async Task GuardarNovoPreco()
+    {
+        selectedPriceToEdit.Value = newPriceValue;
+        selectedPriceToEdit.Date = DateTime.UtcNow;
+
+        await ProductService.UpdatePriceAsync(selectedPriceToEdit);
+        product = await ProductService.GetProductWithStorePricesAsync(product.ID);
+        showEditModal = false;
+        selectedPriceToEdit = null;
+    }
+
+    private IEnumerable<Price> GetLatestPricesByStore()
+    {
+        return product.Prices
+            .Where(p => p.Store != null)
+            .GroupBy(p => p.StoreID)
+            .Select(g => g.OrderByDescending(p => p.Date).First())
+            .OrderBy(p => p.Value);
+    }
+
+}

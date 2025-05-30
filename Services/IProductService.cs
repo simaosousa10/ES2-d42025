@@ -36,5 +36,7 @@ public interface IProductService
     Task<List<SearchSuggestion>> GetSearchSuggestionsAsync(string term);
     Task<List<Product>> GetProductsByStoreIdAsync(int storeId);
     Task<List<Product>> GetProductsByStoreIdIncludingNoPricesAsync(int storeId);
+    Task<Product> GetProductWithStorePricesAsync(int id);
+    Task UpdatePriceAsync(Price price);
 
 }

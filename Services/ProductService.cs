@@ -383,11 +383,33 @@ public class ProductService : IProductService
             .Where(p => p.Prices.Any(p => p.StoreID == storeId) || !_context.Prices.Any(pr => pr.ProductID == p.ID))
             .ToListAsync();
     }
-
-
-
-
     
+    public async Task<Product> GetProductWithStorePricesAsync(int id)
+    {
+        var product = await _context.Products
+            .Include(p => p.Images)
+            .Include(p => p.Category)
+            .Include(p => p.Prices)
+            .ThenInclude(pr => pr.Store) // <- essencial para "Sold by"
+            .FirstOrDefaultAsync(p => p.ID == id);
+
+        if (product == null)
+            throw new KeyNotFoundException($"Produto com ID {id} não encontrado.");
+
+        return product;
+    }
+
+    public async Task UpdatePriceAsync(Price price)
+    {
+        var dbPrice = await _context.Prices.FindAsync(price.ID);
+        if (dbPrice == null) return;
+
+        dbPrice.Value = price.Value;
+        dbPrice.Date = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync();
+    }
+
     
     public class ProductWithPriceDto
     {

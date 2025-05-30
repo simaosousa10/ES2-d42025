@@ -35,10 +35,87 @@ window.initScrollObserver = (dotnetHelper) => {
     }
 };
 
+window.updatePriceChart = (labels, avgPrices, minPrices) => {
+    const canvas = document.getElementById("priceChart");
+    if (!canvas) {
+        console.warn("Canvas 'priceChart' não encontrado. O gráfico não foi desenhado.");
+        return;
+    }
 
+    const ctx = canvas.getContext("2d");
 
+    // Apaga gráfico anterior se existir
+    if (window.myChart) {
+        window.myChart.destroy();
+    }
 
-
-
-
+    window.myChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: 'Preço Médio',
+                    data: avgPrices,
+                    borderColor: '#000',
+                    backgroundColor: '#000',
+                    fill: false,
+                    tension: 0.1,
+                    pointRadius: 0,
+                    pointHoverRadius: 4
+                },
+                {
+                    label: 'Preço Mínimo',
+                    data: minPrices,
+                    borderColor: 'red',
+                    backgroundColor: 'red',
+                    fill: false,
+                    tension: 0.1,
+                    pointRadius: 0,
+                    pointHoverRadius: 4
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        font: {
+                            size: 14
+                        },
+                        usePointStyle: true,
+                        pointStyle: 'circle'
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: false,
+                    ticks: {
+                        stepSize: 50,
+                        callback: function(value) {
+                            return value.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' });
+                        }
+                    },
+                    title: {
+                        display: true,
+                        text: 'Preço (€)',
+                        font: {
+                            size: 14
+                        },
+                        color: '#666',
+                        padding: {
+                            top: 10,
+                            bottom: 0
+                        },
+                        rotation: -90
+                    }
+                }
+            }
+        }
+    });
+};
 
