@@ -1,0 +1,52 @@
+﻿@page "/AdminFeatures"
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<div class="container mt-5">
+    <!-- Título -->
+    <div class="text-center mb-4">
+        <h3 class="fw-bold">Admin Features</h3>
+        <p class="text-muted">Painel de administração para gestão de conteúdos</p>
+    </div>
+
+    <!-- Botões principais -->
+    <div class="row g-3">
+        <div class="col-md-4">
+            <button class="btn btn-primary w-100 p-3" @onclick="NavigationToProductOverview">
+                <i class="bi bi-box-seam me-2"></i> Produtos
+            </button>
+        </div>
+        <div class="col-md-4">
+            <button class="btn btn-primary w-100 p-3" @onclick="NavigationToStoresList">
+                <i class="bi bi-shop me-2"></i> Lojas
+            </button>
+        </div>
+        <div class="col-md-4">
+            <button class="btn btn-outline-primary w-100 p-3" disabled>
+                <i class="bi bi-tags me-2"></i> Categorias
+            </button>
+        </div>
+        <div class="col-md-4">
+            <button class="btn btn-outline-primary w-100 p-3" disabled>
+                <i class="bi bi-people me-2"></i> Utilizadores
+            </button>
+        </div>
+        <div class="col-md-4">
+            <button class="btn btn-outline-primary w-100 p-3" disabled>
+                <i class="bi bi-bar-chart me-2"></i> Relatórios
+            </button>
+        </div>
+    </div>
+</div>
+
+@code {
+    public void NavigationToProductOverview()
+    {
+        Navigation.NavigateTo("products");
+    }
+
+    public void NavigationToStoresList()
+    {
+        Navigation.NavigateTo("stores");
+    }
+}

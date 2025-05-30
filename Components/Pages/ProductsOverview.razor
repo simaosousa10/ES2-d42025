@@ -5,7 +5,15 @@
 @rendermode @(new InteractiveServerRenderMode(prerender: false));
 
 <PageTitle>Products</PageTitle>
-<h3>Products</h3>
+
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-start align-items-center mb-3">
+        <button class="btn btn-outline-secondary me-3" @onclick="GoBack">
+            <i class="bi bi-arrow-left"></i> 
+        </button>
+        <h3 class="mb-0">Products</h3>
+    </div>
+</div>
 
 @if (products.Count == 0)
 {
@@ -82,5 +90,9 @@ else
             products = await ProductService.GetAllProductsWithCurrentPriceAsync();
             StateHasChanged();
         }
+    }
+    private void GoBack()
+    {
+        NavigationManager.NavigateTo("/AdminFeatures");
     }
 }

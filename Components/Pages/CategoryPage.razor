@@ -39,7 +39,13 @@
     <div class="d-grid gap-4" style="grid-template-columns: repeat(5, 1fr);">
         @foreach (var product in pagedProducts)
         {
-            var price = product.Prices?.OrderBy(p => p.Value).FirstOrDefault();
+            var price = product.Prices?
+                .Where(p => p.Date >= DateTime.UtcNow.AddMonths(-3))
+                .GroupBy(p => p.StoreID)
+                .Select(g => g.OrderByDescending(p => p.Date).FirstOrDefault())
+                .OrderBy(p => p.Value)
+                .FirstOrDefault();
+
             var storeCount = product.Prices?.Select(p => p.StoreID).Distinct().Count() ?? 0;
 
             <div class="card shadow-sm border-0 h-100" style="cursor: pointer;" @onclick="@(() => NavigateToProduct(product.ID))">
@@ -122,15 +128,41 @@ else
     {
         filteredProducts = allProducts
             .Where(p => {
-                var price = p.Prices?.OrderBy(pr => pr.Value).FirstOrDefault();
+                var price = p.Prices?
+                    .Where(pr => pr.Date >= DateTime.UtcNow.AddMonths(-3))
+                    .GroupBy(pr => pr.StoreID)
+                    .Select(g => g.OrderByDescending(pr => pr.Date).FirstOrDefault())
+                    .OrderBy(pr => pr.Value)
+                    .FirstOrDefault();
                 return price == null || (price.Value >= minPrice && price.Value <= maxPrice);
             })
+
             .ToList();
 
         filteredProducts = sortOption switch
         {
-            "price-asc" => filteredProducts.OrderBy(p => p.Prices?.OrderBy(pr => pr.Value).FirstOrDefault()?.Value ?? double.MaxValue).ToList(),
-            "price-desc" => filteredProducts.OrderByDescending(p => p.Prices?.OrderBy(pr => pr.Value).FirstOrDefault()?.Value ?? double.MinValue).ToList(),
+            "price-asc" => filteredProducts.OrderBy(p =>
+            {
+                var price = p.Prices?
+                    .Where(pr => pr.Date >= DateTime.UtcNow.AddMonths(-3))
+                    .GroupBy(pr => pr.StoreID)
+                    .Select(g => g.OrderByDescending(pr => pr.Date).FirstOrDefault())
+                    .OrderBy(pr => pr.Value)
+                    .FirstOrDefault();
+                return price?.Value ?? double.MaxValue;
+            }).ToList(),
+
+            "price-desc" => filteredProducts.OrderByDescending(p =>
+            {
+                var price = p.Prices?
+                    .Where(pr => pr.Date >= DateTime.UtcNow.AddMonths(-3))
+                    .GroupBy(pr => pr.StoreID)
+                    .Select(g => g.OrderByDescending(pr => pr.Date).FirstOrDefault())
+                    .OrderBy(pr => pr.Value)
+                    .FirstOrDefault();
+                return price?.Value ?? double.MinValue;
+            }).ToList(),
+
             "name-asc" => filteredProducts.OrderBy(p => p.Name).ToList(),
             "name-desc" => filteredProducts.OrderByDescending(p => p.Name).ToList(),
             "date-asc" => filteredProducts.OrderBy(p => p.Registration_Date).ToList(),
@@ -144,6 +176,6 @@ else
 
     private void NavigateToProduct(int id)
     {
-        Navigation.NavigateTo($"/moreinfo-product/{id}");
+        Navigation.NavigateTo($"/product/{id}");
     }
 }
