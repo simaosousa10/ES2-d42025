@@ -5,8 +5,15 @@
 @rendermode @(new InteractiveServerRenderMode(prerender: false))
 
 <PageTitle>Stores</PageTitle>
-<h3>Stores</h3>
 
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-start align-items-center mb-3">
+        <button class="btn btn-outline-secondary me-3" @onclick="GoBack">
+            <i class="bi bi-arrow-left"></i>
+        </button>
+        <h3 class="mb-0">Stores</h3>
+    </div>
+</div>
 @if (stores.Count == 0)
 {
     <p><em>Loading stores...</em></p>
@@ -35,7 +42,7 @@ else
                 <td>@store.Registration_Date.ToString("dd/MM/yyyy HH:mm:ss")</td>
                 <td>
                     
-                    <button class="btn btn-warning me-1" @onclick="@(() => EditStore(store.ID))">Edit</button>
+                    <button class="btn btn-primary me-1" @onclick="@(() => EditStore(store.ID))">Edit</button>
                     <button class="btn btn-danger" @onclick="@(() => DeleteStore(store.ID))">Delete</button>
                 </td>
             </tr>
@@ -81,5 +88,9 @@ else
             stores = await StoreService.GetStoresAsync();
             StateHasChanged();
         }
+    }
+    private void GoBack()
+    {
+        NavigationManager.NavigateTo("/AdminFeatures");
     }
 }

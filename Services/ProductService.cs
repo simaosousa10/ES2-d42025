@@ -40,7 +40,14 @@ public class ProductService : IProductService
             Name = p.Name,
             Description = p.Description,
             RegistrationDate = p.Registration_Date,
-            CurrentPrice = p.Prices.OrderByDescending(pr => pr.Date).FirstOrDefault()?.Value,
+            CurrentPrice = p.Prices
+                .Where(pr => pr.Date >= DateTime.UtcNow.AddMonths(-3))
+                .GroupBy(pr => pr.StoreID)
+                .Select(g => g.OrderByDescending(pr => pr.Date).FirstOrDefault())
+                .OrderBy(pr => pr.Value)
+                .Select(pr => (double?)pr.Value)
+                .FirstOrDefault(),
+
             CategoryName = p.Category?.Name
         }).ToList();
     }

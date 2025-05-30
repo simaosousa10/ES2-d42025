@@ -42,7 +42,7 @@ else
         <div id="product-list" class="d-grid gap-4 mt-3" style="grid-template-columns: repeat(4, 1fr); overflow-y: auto;">
             @foreach (var product in displayedProducts)
             {
-                var price = product.Prices?.OrderByDescending(p => p.Date).FirstOrDefault();
+                var price = GetMostRecentBestPrice(product);
 
                 <div class="card shadow-sm border-0 h-100" style="cursor: pointer;" @onclick="() => NavigateToProduct(product.ID)">
                     <img src="@(product.Images?.FirstOrDefault()?.UrlImage ?? "/images/default.png")"
@@ -52,7 +52,7 @@ else
 
                     <div class="card-body d-flex flex-column justify-content-between">
                         <h6 class="card-title text-truncate">@product.Name</h6>
-                        <p class="mb-1"><strong>@(price?.Value.ToString("C2") ?? "N/A")</strong></p>
+                        <p class="mb-1"><strong>@(price?.ToString("C2") ?? "N/A")</strong></p>
                         <small class="text-muted">@product.Category?.Name</small>
                     </div>
                 </div>
@@ -115,6 +115,18 @@ else
         var match = Regex.Match(url, "!4d([\\-0-9.]+)");
         return match.Success ? match.Groups[1].Value : null;
     }
+    
+    private double? GetMostRecentBestPrice(Product product)
+    {
+        return product.Prices?
+            .Where(p => p.Date >= DateTime.UtcNow.AddMonths(-3))
+            .GroupBy(p => p.StoreID)
+            .Select(g => g.OrderByDescending(p => p.Date).FirstOrDefault())
+            .OrderBy(p => p.Value)
+            .Select(p => (double?)p.Value)
+            .FirstOrDefault();
+    }
+
 
     private async Task TryLoadMap()
     {
@@ -130,7 +142,7 @@ else
 
     private void NavigateToProduct(int id)
     {
-        Navigation.NavigateTo($"/moreinfo-product/{id}");
+        Navigation.NavigateTo($"/product/{id}");
     }
 
     [JSInvokable]

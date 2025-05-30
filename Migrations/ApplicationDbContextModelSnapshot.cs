@@ -112,6 +112,9 @@ namespace ESIID42025.Migrations
                     b.Property<int>("StoreID")
                         .HasColumnType("integer");
 
+                    b.Property<double>("TrustScore")
+                        .HasColumnType("double precision");
+
                     b.Property<string>("UserID")
                         .IsRequired()
                         .HasColumnType("text");
@@ -283,11 +286,17 @@ namespace ESIID42025.Migrations
                         .IsConcurrencyToken()
                         .HasColumnType("text");
 
+                    b.Property<DateTime?>("DateOfBirth")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("Email")
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)");
 
                     b.Property<bool>("EmailConfirmed")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
 
                     b.Property<bool>("LockoutEnabled")
