@@ -38,5 +38,6 @@ public interface IProductService
     Task<List<Product>> GetProductsByStoreIdIncludingNoPricesAsync(int storeId);
     Task<Product> GetProductWithStorePricesAsync(int id);
     Task UpdatePriceAsync(Price price);
+    Task<List<PriceConfirmation>> GetConfirmationsForUserAsync(string userId);
 
 }

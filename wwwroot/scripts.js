@@ -119,3 +119,12 @@ window.updatePriceChart = (labels, avgPrices, minPrices) => {
     });
 };
 
+window.setupRightClickToClearSuggestions = function (selector, dotNetHelper) {
+    const input = document.querySelector(selector);
+    if (input) {
+        input.addEventListener("contextmenu", function (e) {
+            e.preventDefault();
+            dotNetHelper.invokeMethodAsync("ClearSuggestionsFromJS");
+        });
+    }
+};

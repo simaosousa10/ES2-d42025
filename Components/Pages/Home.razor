@@ -2,6 +2,7 @@
 @using ESIID42025.Models
 @inject IProductService ProductService
 @inject IJSRuntime JSRuntime
+@inject NavigationManager NavigationManager;
 @rendermode InteractiveServer
 
 <h1 class="visually-hidden">Home</h1>
@@ -40,25 +41,22 @@
 
             <div class="position-relative">
                 <div class="d-flex justify-content-center overflow-hidden" style="gap: 2rem; width: 100%;">
-                    <div class="d-flex" style="gap: 2rem; width: 100%; justify-content: start;">
-                        @foreach (var product in GetPagedProducts(categoryId))
+                    <div class="d-flex justify-content-center flex-wrap" style="gap: 2rem; width: 100%;">
+                    @foreach (var product in GetPagedProducts(categoryId))
                         {
-                            <div class="card" style="width: 240px; flex: 0 0 auto;">
+                            <div class="card shadow-sm border-0 h-100" style="cursor: pointer; width: 240px; flex: 0 0 auto;" @onclick="() => NavigateToProduct(product.ID)">
                                 <img src="@(product.Images?.FirstOrDefault()?.UrlImage ?? "/images/default.png")"
                                      class="card-img-top p-3"
                                      alt="@product.Name"
                                      style="height: 200px; object-fit: contain;" />
                                 <div class="card-body d-flex flex-column justify-content-between">
-                                    <div>
-                                        <h6 class="card-title">@product.Name</h6>
-                                        <p class="card-text mb-3">
-                                            from <strong>@(product.Prices?.OrderBy(p => p.Value).FirstOrDefault()?.Value.ToString("C2") ?? "N/A")</strong>
-                                        </p>
-                                    </div>
-                                    <a href="/product/@product.ID"
-                                       class="btn btn-primary rounded-pill w-100 text-center">
-                                        Details
-                                    </a>
+                                    <h6 class="card-title text-truncate">@product.Name</h6>
+                                    <p class="mb-1">
+                                        <strong>@(product.Prices?.OrderBy(p => p.Value).FirstOrDefault()?.Value.ToString("C2") ?? "N/A")</strong>
+                                    </p>
+                                    <small class="text-muted">
+                                        in @(product.Prices?.Select(p => p.StoreID).Distinct().Count() ?? 0) store@(product.Prices?.Select(p => p.StoreID).Distinct().Count() == 1 ? "" : "s")
+                                    </small>
                                 </div>
                             </div>
                         }
@@ -166,4 +164,10 @@
             await JSRuntime.InvokeVoidAsync("smoothScrollToStart", catRef.ScrollRef);
         }
     }
+    
+    private void NavigateToProduct(int id)
+    {
+        NavigationManager.NavigateTo($"/product/{id}");
+    }
+
 }

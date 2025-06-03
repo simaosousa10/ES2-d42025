@@ -417,6 +417,13 @@ public class ProductService : IProductService
         await _context.SaveChangesAsync();
     }
 
+    public async Task<List<PriceConfirmation>> GetConfirmationsForUserAsync(string userId)
+    {
+        return await _context.PriceConfirmations
+            .Where(c => c.UserID == userId)
+            .ToListAsync();
+    }
+
     
     public class ProductWithPriceDto
     {

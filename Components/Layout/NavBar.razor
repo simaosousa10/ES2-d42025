@@ -6,7 +6,7 @@
 <nav class="navbar navbar-expand-md navbar-dark" style="background-color: #2962FF; padding: 0.75rem 0;">
     <div class="d-flex justify-content-between align-items-center w-100 px-4">
         <div class="d-flex align-items-center">
-            <button class="btn btn-link text-white me-3 p-0" type="button" @oncliack="ToggleMenu">
+            <button class="btn btn-link text-white me-3 p-0" type="button" @onclick="ToggleMenu">
                 <i class="bi bi-list" style="font-size: 1.5rem;"></i>
             </button>
 
@@ -62,16 +62,13 @@
                     @{
                         var user = context.User;
                     }
-
-                   
-                    
                     <NavLink href="AdminFeatures" class="d-flex align-items-right text-white text-decoration-none">
                         @if (user.IsInRole("Admin"))
                         {
                             <span class="small d-none d-md-inline me-5">Admin Features</span>
                         } 
                     </NavLink>
-                    <NavLink href="Account/Manage" class="d-flex align-items-center text-white text-decoration-none">
+                    <NavLink href="/profile" class="d-flex align-items-center text-white text-decoration-none">
 
 
                         @if (user.IsInRole("UserManager"))
@@ -186,5 +183,3 @@
         suppressSearchTrigger = false;
     }
 }
-
-
