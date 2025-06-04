@@ -1,0 +1,131 @@
+﻿@page "/admin/messages"
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
+@inject UserManager<User> UserManager
+@using ESIID42025.Data
+@inject ApplicationDbContext Db
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<h3>📬 Message a User</h3>
+
+@if (!isLoaded)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <EditForm Model="@messageModel" OnValidSubmit="SendClientMessage" FormName="send-message" @key="formKey">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <div>
+            <label>Select User:</label><br />
+            <InputSelect @bind-Value="messageModel.SelectedClientId" class="form-select">
+                <option value="">-- Select User --</option>
+                @foreach (var user in users)
+                {
+                    <option value="@user.Id">@user.UserName (@user.Email)</option>
+                }
+            </InputSelect>
+            <ValidationMessage For="@(() => messageModel.SelectedClientId)" />
+        </div>
+
+        <div style="margin-top: 1em;">
+            <label>Title:</label><br />
+            <InputText @bind-Value="messageModel.Title" class="form-control" />
+            <ValidationMessage For="@(() => messageModel.Title)" />
+        </div>
+
+        <div style="margin-top: 1em;">
+            <label>Message:</label><br />
+            <InputTextArea @bind-Value="messageModel.Content" class="form-control" rows="5" />
+            <ValidationMessage For="@(() => messageModel.Content)" />
+        </div>
+
+        <button type="submit" style="margin-top: 1em;">Send Message</button>
+    </EditForm>
+
+    @if (!string.IsNullOrWhiteSpace(SuccessMessage))
+    {
+        <p style="color: green; margin-top: 1em;">@SuccessMessage</p>
+    }
+    @if (!string.IsNullOrWhiteSpace(ErrorMessage))
+    {
+        <p style="color: red; margin-top: 1em;">@ErrorMessage</p>
+    }
+}
+
+@code {
+    private List<User> users = new();
+    private MessageFormModel messageModel = new();
+    private Guid formKey = Guid.NewGuid(); // 🔑 key to re-render form
+    private bool isLoaded = false;
+    private string SuccessMessage = string.Empty;
+    private string ErrorMessage = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        var currentUserId = UserManager.GetUserId(user) ?? string.Empty;
+
+        users = await Db.Users
+            .Where(u => u.Id != currentUserId)
+            .ToListAsync();
+
+        isLoaded = true;
+    }
+
+    private async Task SendClientMessage()
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(messageModel.SelectedClientId) ||
+                string.IsNullOrWhiteSpace(messageModel.Title) ||
+                string.IsNullOrWhiteSpace(messageModel.Content))
+            {
+                ErrorMessage = "❌ All fields are required.";
+                return;
+            }
+
+            var message = new Message
+            {
+                UserID = messageModel.SelectedClientId,
+                Title = messageModel.Title.Trim(),
+                Content = messageModel.Content.Trim(),
+                Sent_Date = DateTime.UtcNow
+            };
+
+            Db.Messages.Add(message);
+            await Db.SaveChangesAsync();
+
+            SuccessMessage = "✅ Your message was sent successfully!";
+            ErrorMessage = "";
+
+            // Reset the form
+            messageModel = new MessageFormModel();
+            formKey = Guid.NewGuid(); // Force form to re-render
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"❌ Failed to send message: {ex.Message}";
+            SuccessMessage = "";
+        }
+
+        StateHasChanged();
+    }
+
+    public class MessageFormModel
+    {
+        [Required(ErrorMessage = "Please select a user from the list.")]
+        public string SelectedClientId { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Title is required.")]
+        [StringLength(100, ErrorMessage = "Title cannot be more than 100 characters.")]
+        public string Title { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Message content cannot be empty.")]
+        public string Content { get; set; } = string.Empty;
+    }
+}
