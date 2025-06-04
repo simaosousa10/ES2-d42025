@@ -36,6 +36,12 @@
                 <i class="bi bi-bar-chart me-2"></i> Relatórios
             </button>
         </div>
+        <!-- New Button for Messages -->
+        <div class="col-md-4">
+            <button class="btn btn-primary w-100 p-3" @onclick="NavigationToMessages">
+                <i class="bi bi-chat-dots me-2"></i> Mensagens
+            </button>
+        </div>
     </div>
 </div>
 
@@ -48,5 +54,10 @@
     public void NavigationToStoresList()
     {
         Navigation.NavigateTo("stores");
+    }
+
+    public void NavigationToMessages()
+    {
+        Navigation.NavigateTo("/admin/messages"); // <-- Exact route to your messages page
     }
 }
