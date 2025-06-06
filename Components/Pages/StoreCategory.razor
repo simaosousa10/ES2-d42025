@@ -1,0 +1,77 @@
+@page "/storecategory/{StoreId:int}"
+@inject IProductService ProductService
+@inject StoreService StoreService
+@inject NavigationManager NavigationManager
+@using ESIID42025.Models
+@using ESIID42025.DTOs
+@rendermode InteractiveServer
+
+<PageTitle>Categorias da Loja</PageTitle>
+
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-start align-items-center mb-3">
+        <button class="btn btn-outline-secondary me-3" @onclick="GoBack">
+            <i class="bi bi-arrow-left"></i>
+        </button>
+        <h3 class="mb-0">Categorias da Loja (ID: @StoreId)</h3>
+    </div>
+</div>
+
+<h4 class="text-center mb-4">@LojaNome</h4>
+
+@if (categoriaResumo == null)
+{
+    <p class="text-center text-muted mt-4">A carregar categorias...</p>
+}
+else
+{
+    <div class="row row-cols-1 row-cols-md-2 g-4">
+        @foreach (var cat in categoriaResumo)
+        {
+            <div class="col">
+                <div class="card border-primary">
+                    <div class="card-header bg-primary text-white text-center">@cat.CategoryName</div>
+
+                    <div class="card-body text-center">
+                        <h3>@cat.ProductCount</h3>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    [Parameter] public int StoreId { get; set; }
+
+    public string LojaNome { get; set; } = "";
+    private List<CategorySummary>? categoriaResumo;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var loja = await StoreService.GetStoreByIdAsync(StoreId);
+        LojaNome = loja?.Name ?? "Loja";
+
+        var todasCategorias = await ProductService.GetAllCategoriesAsync();
+        var produtosLoja = await ProductService.GetProductsByStoreIdAsync(StoreId);
+
+        categoriaResumo = todasCategorias
+            .Select(cat => new CategorySummary
+            {
+                CategoryName = cat.Name,
+                ProductCount = produtosLoja.Count(p => p.Category?.ID == cat.ID)
+            })
+            .ToList();
+    }
+
+    private void GoBack()
+    {
+        NavigationManager.NavigateTo("/stores");
+    }
+
+    private class CategorySummary
+    {
+        public string CategoryName { get; set; }
+        public int ProductCount { get; set; }
+    }
+}

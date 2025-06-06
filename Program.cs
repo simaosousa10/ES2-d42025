@@ -23,10 +23,11 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddScoped<IProductService, ProductService>();
+builder.Services.AddScoped<IUserActivityService, UserActivityService>();
 builder.Services.AddScoped<JsInteropService>();
 builder.Services.AddScoped<ICredibilityStrategy, HybridStrategy>();
-
 builder.Services.AddScoped<StoreService>(); // ✅ Moved UP here!
+builder.Services.AddScoped<IListUserService, ListUserService>();
 
 // Configuração do Identity
 builder.Services.AddCascadingAuthenticationState();

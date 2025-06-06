@@ -1,0 +1,87 @@
+@page "/UserActivities/{UserId}"
+@inject NavigationManager NavigationManager
+@inject IUserActivityService UserActivityService
+@rendermode InteractiveServer
+
+<PageTitle>Atividades do Utilizador</PageTitle>
+
+@if (activitySummary == null)
+{
+    <p><em>A carregar atividades...</em></p>
+}
+else
+{
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-start align-items-center mb-3">
+        <button class="btn btn-outline-secondary me-3" @onclick="GoBack">
+            <i class="bi bi-arrow-left"></i>
+        </button>
+        <h3 class="mb-0">Atividades do Utilizador</h3>
+    </div>
+
+</div>
+
+
+    <h4 class="text-center mb-4">@activitySummary.Nome</h4>
+
+    <div class="row row-cols-1 row-cols-md-2 g-4">
+        <div class="col">
+            <div class="card border-primary">
+                <div class="card-header bg-primary text-white text-center">Preços Submetidos</div>
+                <div class="card-body text-center">
+                    <h3>@activitySummary.TotalPrices</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card border-primary">
+                <div class="card-header bg-primary text-white text-center">Confirmações de Preços</div>
+                <div class="card-body text-center">
+                    <h3>@activitySummary.TotalConfirmations</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card border-primary">
+                <div class="card-header bg-primary text-white text-center">Mensagens Enviadas</div>
+                <div class="card-body text-center">
+                    <h3>@activitySummary.TotalMessages</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card border-primary">
+                <div class="card-header bg-primary text-white text-center">Relatórios Submetidos</div>
+                <div class="card-body text-center">
+                    <h3>@activitySummary.TotalReports</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public string UserId { get; set; }
+
+    private UserActivitySummary? activitySummary;
+
+    protected override async Task OnInitializedAsync()
+    {
+        activitySummary = await UserActivityService.GetActivitySummaryAsync(UserId);
+    }
+
+    private void GoBack()
+    {
+        NavigationManager.NavigateTo("/ListUsers");
+    }
+
+    public class UserActivitySummary
+    {
+        public string Nome { get; set; } = "";
+        public int TotalPrices { get; set; }
+        public int TotalConfirmations { get; set; }
+        public int TotalMessages { get; set; }
+        public int TotalReports { get; set; }
+    }
+}

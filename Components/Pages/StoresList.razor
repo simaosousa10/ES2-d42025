@@ -11,7 +11,7 @@
         <button class="btn btn-outline-secondary me-3" @onclick="GoBack">
             <i class="bi bi-arrow-left"></i>
         </button>
-        <h3 class="mb-0">Stores</h3>
+        <h3 class="mb-0">🏪Stores</h3>
     </div>
 </div>
 @if (stores.Count == 0)
@@ -41,10 +41,12 @@ else
                 <td><a href="@store.GoogleMaps_URL" target="_blank">Map</a></td>
                 <td>@store.Registration_Date.ToString("dd/MM/yyyy HH:mm:ss")</td>
                 <td>
-                    
-                    <button class="btn btn-primary me-1" @onclick="@(() => EditStore(store.ID))">Edit</button>
-                    <button class="btn btn-danger" @onclick="@(() => DeleteStore(store.ID))">Delete</button>
+                    <button class="btn btn-info me-1" @onclick="@(() => VerProdutos(store.ID))">Produtos</button>
+                    <button class="btn btn-info me-1" @onclick="@(() => VerCategorias(store.ID))">Categorias</button>
+                    <button class="btn btn-primary me-1" @onclick="@(() => EditStore(store.ID))">Editar</button>
+                    <button class="btn btn-danger me-1" @onclick="@(() => DeleteStore(store.ID))">Eliminar</button>
                 </td>
+
             </tr>
         }
         </tbody>
@@ -93,4 +95,15 @@ else
     {
         NavigationManager.NavigateTo("/AdminFeatures");
     }
+    
+    private void VerProdutos(int storeId)
+    {
+        NavigationManager.NavigateTo($"/StoreProducts/{storeId}");
+    }
+    
+    private void VerCategorias(int storeId)
+    {
+        NavigationManager.NavigateTo($"/storecategory/{storeId}");
+    }
+
 }
