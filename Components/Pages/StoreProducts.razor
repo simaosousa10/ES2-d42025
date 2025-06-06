@@ -1,0 +1,95 @@
+@page "/storeproducts/{StoreId:int}"
+@inject IProductService ProductService
+@inject NavigationManager NavigationManager
+@using ESIID42025.DTOs
+@rendermode InteractiveServer
+
+<PageTitle>Produtos da Loja</PageTitle>
+
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-start align-items-center mb-3">
+        <button class="btn btn-outline-secondary me-3" @onclick="GoBack">
+            <i class="bi bi-arrow-left"></i>
+        </button>
+        <h3 class="mb-0">Produtos da Loja (ID: @StoreId)</h3>
+    </div>
+
+    <h4 class="text-center mb-4">@LojaNome</h4>
+
+    @if (products is null)
+    {
+        <p>A carregar produtos...</p>
+    }
+    else if (products.Count == 0)
+    {
+        <p class="text-center text-muted mt-4">Esta loja não tem produtos registados.</p>
+    }
+    else
+    {
+        <table class="table">
+            <thead>
+            <tr>
+                <th>ID</th>
+                <th>Nome</th>
+                <th>Descrição</th>
+                <th>Categoria</th>
+                <th>Data Registo</th>
+            </tr>
+            </thead>
+            <tbody>
+            @foreach (var product in products)
+            {
+                <tr>
+                    <td>@product.Id</td>
+                    <td>@product.Name</td>
+                    <td>@product.Description</td>
+                    <td>@product.CategoryName</td>
+                    <td>@product.RegistrationDate.ToString("dd/MM/yyyy")</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    }
+</div>
+
+@code {
+    [Parameter] public int StoreId { get; set; }
+
+    private List<ProductService.ProductWithPriceDto>? products;
+    
+    private string LojaNome = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var allProducts = await ProductService.GetAllProductsWithCurrentPriceAsync();
+        
+        var store = await ProductService.GetAllStoresAsync();
+        LojaNome = store.FirstOrDefault(s => s.ID == StoreId)?.Name ?? "Loja";
+
+
+        var filtered = new List<ProductService.ProductWithPriceDto>();
+
+        foreach (var p in allProducts)
+        {
+            if (await IsProductInStoreAsync(p.Id))
+            {
+                filtered.Add(p);
+            }
+        }
+
+        products = filtered;
+    }
+
+
+    private async Task<bool> IsProductInStoreAsync(int productId)
+    {
+        var product = await ProductService.GetProductWithStorePricesAsync(productId);
+        return product.Prices.Any(p => p.StoreID == StoreId);
+    }
+
+
+    private void GoBack()
+    {
+        NavigationManager.NavigateTo("/stores");
+    }
+}

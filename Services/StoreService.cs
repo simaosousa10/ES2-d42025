@@ -56,5 +56,13 @@ public class StoreService
             throw new Exception($"Failed to delete store: {response.StatusCode} - {content}");
         }
     }
+    
+    public async Task<List<Product>> GetProductsByStoreIdAsync(int storeId)
+    {
+        return await _context.Products
+            .Include(p => p.Prices)
+            .Where(p => p.Prices.Any(pr => pr.StoreID == storeId))
+            .ToListAsync();
+    }
 
 }

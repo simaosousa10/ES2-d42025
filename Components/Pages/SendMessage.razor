@@ -6,8 +6,21 @@
 @using ESIID42025.Data
 @inject ApplicationDbContext Db
 @inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JsRuntime
+@rendermode InteractiveServer
 
-<h3>📬 Message a User</h3>
+
+<PageTitle>Message</PageTitle>
+
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-start align-items-center mb-3">
+        <button type="button" class="btn btn-outline-secondary me-3" @onclick="GoBack">
+            <i class="bi bi-arrow-left"></i>
+        </button>
+        <h3 class="mb-0">📬 Message a User</h3>
+    </div>
+</div>
 
 @if (!isLoaded)
 {
@@ -128,4 +141,10 @@ else
         [Required(ErrorMessage = "Message content cannot be empty.")]
         public string Content { get; set; } = string.Empty;
     }
+    
+    private void GoBack()
+    {
+        NavigationManager.NavigateTo("/AdminFeatures");
+    }
+
 }

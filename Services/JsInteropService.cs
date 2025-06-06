@@ -1,5 +1,6 @@
 ﻿// JsInteropService.cs
 using Microsoft.JSInterop;
+using System.Threading.Tasks;
 
 namespace ESIID42025.Services
 {
