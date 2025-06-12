@@ -28,6 +28,7 @@ builder.Services.AddScoped<JsInteropService>();
 builder.Services.AddScoped<ICredibilityStrategy, HybridStrategy>();
 builder.Services.AddScoped<StoreService>(); // ✅ Moved UP here!
 builder.Services.AddScoped<IListUserService, ListUserService>();
+builder.Services.AddSingleton<PdfReportService>();
 
 // Configuração do Identity
 builder.Services.AddCascadingAuthenticationState();
