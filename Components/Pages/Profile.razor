@@ -1,14 +1,18 @@
 ﻿@page "/profile"
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthProvider
+@using ESIID42025.Data
 @using Microsoft.AspNetCore.Components.Authorization
 @using ESIID42025.Models
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
 @inject IProductService ProductService
+@inject UserManager<User> UserManager
+@inject ApplicationDbContext Db
 @rendermode InteractiveServer
 
 <h1 class="visually-hidden">Profile</h1>
 
-<!-- Wrapper igual ao da Home -->
 <div class="container-fluid px-4 mt-4">
     <div class="row">
         <!-- Sidebar -->
@@ -35,7 +39,7 @@
                     <i class="bi bi-chevron-right text-muted" style="font-size: 1.2rem;"></i>
                 </li>
 
-                <li class="d-flex justify-content-between align-items-center py-3 border-bottom" style="cursor: pointer;" @onclick="@(() => NavigateTo("/account/messages"))">
+                <li class="d-flex justify-content-between align-items-center py-3 border-bottom" style="cursor: pointer;" @onclick="@(() => NavigateTo("/user/messages"))">
                     <div class="d-flex align-items-center">
                         <i class="bi bi-chat-left-text me-3" style="font-size: 1.5rem; color: black;"></i>
                         <span class="fw-semibold text-dark" style="font-size: 1.2rem;">Messages</span>
@@ -54,11 +58,12 @@
 
         <!-- Main Content -->
         <div class="col-md-9 col-lg-10 px-4 py-4">
+            <!-- Confirmations -->
             <h3 class="fw-bold mb-4">Your Confirmations</h3>
 
             @if (confirmations == null)
             {
-                <p>Loading...</p>
+                <p>Loading confirmations...</p>
             }
             else if (!confirmations.Any())
             {
@@ -76,12 +81,36 @@
                     }
                 </div>
             }
+
+            <!-- Messages -->
+            <h3 class="fw-bold mt-5 mb-4">📬 Your Messages</h3>
+
+            @if (!userMessages.Any())
+            {
+                <p class="text-muted">You have no messages.</p>
+            }
+            else
+            {
+                <div class="list-group">
+                    @foreach (var message in userMessages)
+                    {
+                        <div class="list-group-item list-group-item-action">
+                            <strong>@message.Title</strong><br />
+                            <small class="text-muted">
+                                Sent on: @message.Sent_Date.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                            </small>
+                            <p class="mt-2">@message.Content</p>
+                        </div>
+                    }
+                </div>
+            }
         </div>
     </div>
 </div>
 
 @code {
     private List<PriceConfirmation> confirmations = new();
+    private List<Message> userMessages = new();
     private string userName = "User";
 
     protected override async Task OnInitializedAsync()
@@ -98,6 +127,11 @@
             if (!string.IsNullOrEmpty(userId))
             {
                 confirmations = await ProductService.GetConfirmationsForUserAsync(userId);
+
+                userMessages = await Db.Messages
+                    .Where(m => m.UserID == userId)
+                    .OrderByDescending(m => m.Sent_Date)
+                    .ToListAsync();
             }
         }
     }
