@@ -1,0 +1,55 @@
+﻿@page "/user/messages"
+@using ESIID42025.Data
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
+@inject UserManager<User> UserManager
+@inject ApplicationDbContext Db
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<h3>Mensagens Recebidas</h3>
+
+@if (!isLoaded)
+{
+    <p>A carregar as suas mensagens...</p>
+}
+else if (userMessages.Count == 0)
+{
+    <p>Não tem mensagens recebidas.</p>
+}
+else
+{
+    <ul class="list-group">
+        @foreach (var message in userMessages)
+        {
+            <li class="list-group-item mb-2" >
+                <strong>@message.Title</strong><br />
+                <small>📅 @message.Sent_Date.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</small>
+                <p class="mt-2">@message.Content</p>
+            </li>
+        }
+    </ul>
+}
+
+@code {
+    private List<Message> userMessages = new();
+    private bool isLoaded = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity is not null && user.Identity.IsAuthenticated)
+        {
+            var userId = UserManager.GetUserId(user) ?? "";
+
+            // 📨 Lista todas as mensagens que têm o user como destinatário
+            userMessages = await Db.Messages
+                .Where(m => m.UserID == userId)
+                .OrderByDescending(m => m.Sent_Date)
+                .ToListAsync();
+        }   
+
+        isLoaded = true;
+    }
+}
