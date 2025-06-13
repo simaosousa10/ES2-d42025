@@ -16,6 +16,103 @@ public class PdfReportService
     }
 
     public byte[] GenerateStoreReportPdf(string userName, List<Store> stores, Dictionary<int, Dictionary<string, int>> categoryCounts)
+    {
+        QuestPDF.Settings.License = LicenseType.Community;
+
+        var logoPath = Path.Combine(_env.WebRootPath, "images", "LogoEmAzul.png");
+        var logoBytes = File.Exists(logoPath) ? File.ReadAllBytes(logoPath) : null;
+        var currentDate = DateTime.Now.ToString("dd/MM/yyyy HH:mm");
+
+        return Document.Create(container =>
+        {
+            container.Page(page =>
+            {
+                page.Margin(30);
+                page.Size(PageSizes.A4);
+
+                page.Header().Element(header =>
+                {
+                    header.Row(row =>
+                    {
+                        if (logoBytes != null)
+                        {
+                            row.ConstantItem(120).Image(logoBytes);
+                        }
+
+                        row.RelativeItem().Column(col =>
+                        {
+                            col.Item().AlignRight().Text(t =>
+                            {
+                                t.Span("Relatório Geral de Lojas").FontSize(20).FontColor("#3064fc").Bold();
+                            });
+                            col.Item().AlignRight().Text(t =>
+                            {
+                                t.Span($"Gerado por: {userName}").Style(TextStyle.Default.Size(10));
+                            });
+                            col.Item().AlignRight().Text(t =>
+                            {
+                                t.Span($"Data: {currentDate}").Style(TextStyle.Default.Size(10));
+                            });
+                        });
+                    });
+                });
+
+                page.Content().Element(content =>
+                {
+                    content.Column(col =>
+                    {
+                        foreach (var store in stores)
+                        {
+                            col.Item().PaddingVertical(20).Element(e => e.ShowEntire()).Element(e =>
+                            {
+                                e.Column(c =>
+                                {
+                                    c.Item().Text(t =>
+                                    {
+                                        t.Span(store.Name).Style(TextStyle.Default.Size(14).Bold());
+                                    });
+                                    c.Item().Text(t =>
+                                    {
+                                        t.Span($"Localização: {store.Location}").Style(TextStyle.Default.Size(10).Italic());
+                                    });
+                                    if (categoryCounts.TryGetValue(store.ID, out var categories) && categories.Any())
+                                    {
+                                        c.Item().Text(t =>
+                                        {
+                                            t.Span("Categorias:").Style(TextStyle.Default.Size(11).Bold());
+                                        });
+                                        foreach (var cat in categories)
+                                        {
+                                            c.Item().Text(t =>
+                                            {
+                                                t.Span($"• {cat.Key} ({cat.Value})").Style(TextStyle.Default.Size(10));
+                                            });
+                                        }
+                                    }
+                                    else
+                                    {
+                                        c.Item().Text(t =>
+                                        {
+                                            t.Span("Sem produtos registados.").Style(TextStyle.Default.Size(10).Italic());
+                                        });
+                                    }
+                                    c.Item().PaddingTop(10).LineHorizontal(1);
+                                });
+                            });
+                        }
+                    });
+                });
+
+                page.Footer().AlignCenter().Text(t =>
+                {
+                    t.Span("DealRadar ").Style(TextStyle.Default.Size(9).Bold());
+                    t.Span("- Relatório PDF gerado automaticamente.").Style(TextStyle.Default.Size(9).Italic());
+                });
+            });
+        }).GeneratePdf();
+    }
+
+    public byte[] GenerateStoreSpecificReportPdf(string userName, Store store, List<Product> products)
 {
     QuestPDF.Settings.License = LicenseType.Community;
 
@@ -29,6 +126,7 @@ public class PdfReportService
         {
             page.Margin(30);
             page.Size(PageSizes.A4);
+            page.DefaultTextStyle(x => x.FontSize(12));
 
             // HEADER
             page.Header().Element(header =>
@@ -36,29 +134,17 @@ public class PdfReportService
                 header.Row(row =>
                 {
                     if (logoBytes != null)
-                    {
                         row.ConstantItem(120).Image(logoBytes);
-                    }
 
                     row.RelativeItem().Column(col =>
                     {
                         col.Item().AlignRight().Text(t =>
                         {
-                            t.Span("Relatório Geral de Lojas")
-                             .FontSize(20)
-                             .FontColor("#3064fc")
-                             .Bold();
+                            t.Span("Relatório da Loja").FontSize(20).FontColor("#3064fc").Bold();
                         });
 
-                        col.Item().AlignRight().Text(t =>
-                        {
-                            t.Span($"Gerado por: {userName}").Style(TextStyle.Default.Size(10));
-                        });
-
-                        col.Item().AlignRight().Text(t =>
-                        {
-                            t.Span($"Data: {currentDate}").Style(TextStyle.Default.Size(10));
-                        });
+                        col.Item().AlignRight().Text($"Gerado por: {userName}").FontSize(10);
+                        col.Item().AlignRight().Text($"Data: {currentDate}").FontSize(10);
                     });
                 });
             });
@@ -68,50 +154,36 @@ public class PdfReportService
             {
                 content.Column(col =>
                 {
-                    foreach (var store in stores)
+                    col.Item().Text(store.Name).FontSize(16).Bold();
+                    col.Item().Text($"Localização: {store.Location}")
+                        .Italic().FontSize(12).FontColor(Colors.Grey.Darken2);
+
+                    col.Item().Height(10); // espaço entre a localização e os produtos
+
+                    if (products != null && products.Any())
                     {
-                        // Força o bloco completo a manter-se na mesma página
-                        col.Item().PaddingVertical(20).Element(e => e.ShowEntire()).Element(e =>
+                        foreach (var p in products)
                         {
-                            e.Column(c =>
+                            var price = p.Prices.OrderByDescending(p => p.Date).FirstOrDefault()?.Value;
+
+                            col.Item().BorderBottom(1).PaddingVertical(5).Row(row =>
                             {
-                                c.Item().Text(t =>
+                                row.RelativeItem().Column(inner =>
                                 {
-                                    t.Span(store.Name).Style(TextStyle.Default.Size(14).Bold());
+                                    inner.Item().Text(p.Name).Bold();
+                                    inner.Item().Text(p.Description)
+                                        .FontColor(Colors.Grey.Darken2).FontSize(10);
                                 });
 
-                                c.Item().Text(t =>
-                                {
-                                    t.Span($"Localização: {store.Location}").Style(TextStyle.Default.Size(10).Italic());
-                                });
-
-                                if (categoryCounts.TryGetValue(store.ID, out var categories) && categories.Any())
-                                {
-                                    c.Item().Text(t =>
-                                    {
-                                        t.Span("Categorias:").Style(TextStyle.Default.Size(11).Bold());
-                                    });
-
-                                    foreach (var cat in categories)
-                                    {
-                                        c.Item().Text(t =>
-                                        {
-                                            t.Span($"• {cat.Key} ({cat.Value})").Style(TextStyle.Default.Size(10));
-                                        });
-                                    }
-                                }
-                                else
-                                {
-                                    c.Item().Text(t =>
-                                    {
-                                        t.Span("Sem produtos registados.").Style(TextStyle.Default.Size(10).Italic());
-                                    });
-                                }
-
-                                // LINHA separadora
-                                c.Item().PaddingTop(10).LineHorizontal(1);
+                                row.ConstantItem(80).AlignRight().AlignMiddle().Text($"{price?.ToString("0.00")} €")
+                                    .FontColor(Colors.Blue.Medium).SemiBold().FontSize(11);
                             });
-                        });
+                        }
+                    }
+                    else
+                    {
+                        col.Item().Text("Sem produtos registados.")
+                            .Italic().FontColor(Colors.Grey.Darken2);
                     }
                 });
             });
@@ -125,5 +197,6 @@ public class PdfReportService
         });
     }).GeneratePdf();
 }
+
 
 }
