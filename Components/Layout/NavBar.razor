@@ -22,7 +22,8 @@
                        style="width: 500px;"
                        @bind="searchTerm"
                        @bind:event="oninput"
-                       @onkeypress="HandleKeyPress"/>
+                       @onkeypress="HandleKeyPress"
+                       @onblur="HideSuggestions"/>
 
 
                 <span class="position-absolute end-0 pe-3 text-muted" style="cursor: pointer;" @onclick="() => HandleSearch(searchTerm)">
@@ -181,5 +182,12 @@
         searchTerm = "";
         suggestions.Clear();
         suppressSearchTrigger = false;
+    }
+    
+    private async Task HideSuggestions()
+    {
+        await Task.Delay(150);
+        suggestions.Clear();
+        StateHasChanged();
     }
 }
