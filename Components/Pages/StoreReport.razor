@@ -1,0 +1,190 @@
+﻿@page "/reports/store"
+@inject IProductService ProductService
+@inject PdfReportService PdfService
+@inject IJSRuntime JS
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<PageTitle>Relatório por Loja</PageTitle>
+
+<div class="container my-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-semibold text-primary">Relatório Específico por Loja</h2>
+        @if (selectedStore != null && products.Any())
+        {
+            <button class="btn btn-outline-primary" @onclick="GeneratePdf">
+                <i class="bi bi-file-earmark-pdf me-1"></i> Gerar PDF
+            </button>
+        }
+    </div>
+
+    <div class="mb-4">
+        <label class="form-label">Seleciona uma loja:</label>
+        <select class="form-select" value="@selectedStore?.ID" @onchange="@(async e => await OnStoreChanged(e))">
+            <option disabled selected value="">-- Escolhe uma loja --</option>
+            @foreach (var loja in stores)
+            {
+                <option value="@loja.ID">@loja.Name</option>
+            }
+        </select>
+    </div>
+
+    @if (selectedStore != null)
+    {
+        <div class="row">
+            <div class="col-md-4">
+                <h5 class="text-primary">@selectedStore.Name</h5>
+                <p class="text-muted">@selectedStore.Location</p>
+
+                @if (isMapReady && !string.IsNullOrEmpty(Latitude) && !string.IsNullOrEmpty(Longitude))
+                {
+                    <div id="map" style="width: 100%; height: 300px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1); margin-top: 10px;"></div>
+                }
+            </div>
+
+            <div class="col-md-8 d-flex flex-column justify-content-start">
+                @if (products?.Any() == true)
+                {
+                    <ul class="list-group">
+                        @foreach (var p in products)
+                        {
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>
+                                    <strong>@p.Name</strong><br />
+                                    <small class="text-muted">@p.Description</small>
+                                </span>
+                                <span class="badge bg-primary">
+                                    @GetLatestPrice(p) €
+                                </span>
+                            </li>
+                        }
+                    </ul>
+                }
+                else
+                {
+                    <p class="text-muted">Esta loja não tem produtos registados.</p>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private List<Store> stores = new();
+    private Store selectedStore;
+    private List<Product> products = new();
+    private string Latitude => ExtractLatitudeFromUrl(selectedStore?.GoogleMaps_URL);
+    private string Longitude => ExtractLongitudeFromUrl(selectedStore?.GoogleMaps_URL);
+    private bool isMapReady = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        stores = await ProductService.GetAllStoresAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && selectedStore != null)
+        {
+            isMapReady = true;
+            StateHasChanged();
+            await Task.Delay(200);
+
+            if (!string.IsNullOrEmpty(Latitude) && !string.IsNullOrEmpty(Longitude))
+            {
+                await TryLoadMap();
+            }
+        }
+    }
+
+    private async Task OnStoreChanged(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var storeId))
+        {
+            selectedStore = stores.FirstOrDefault(s => s.ID == storeId);
+            products = await ProductService.GetProductsByStoreIdAsync(storeId);
+            isMapReady = true;
+            StateHasChanged();
+            await Task.Delay(200);
+            if (!string.IsNullOrEmpty(Latitude) && !string.IsNullOrEmpty(Longitude))
+            {
+                await TryLoadMap();
+            }
+        }
+    }
+
+    private double? GetLatestPrice(Product product)
+    {
+        return product.Prices
+            .OrderByDescending(p => p.Date)
+            .FirstOrDefault()?.Value;
+    }
+
+    private async Task GeneratePdf()
+    {
+        string base64Map = await JS.InvokeAsync<string>("captureMapAsImage");
+        byte[] mapBytes = null;
+
+        if (!string.IsNullOrEmpty(base64Map))
+        {
+            mapBytes = Convert.FromBase64String(base64Map.Split(",")[1]);
+        }
+
+        var pdfBytes = PdfService.GenerateStoreSpecificReportPdf("admin@example.com", selectedStore, products);
+        using var streamRef = new DotNetStreamReference(new MemoryStream(pdfBytes));
+        await JS.InvokeVoidAsync("downloadFileFromStream", "relatorio_loja.pdf", streamRef);
+    }
+
+    private string ExtractLatitudeFromUrl(string url)
+    {
+        if (string.IsNullOrEmpty(url)) return null;
+        var match = System.Text.RegularExpressions.Regex.Match(url, "!3d([\\-0-9.]+)");
+        return match.Success ? match.Groups[1].Value : null;
+    }
+
+    private string ExtractLongitudeFromUrl(string url)
+    {
+        if (string.IsNullOrEmpty(url)) return null;
+        var match = System.Text.RegularExpressions.Regex.Match(url, "!4d([\\-0-9.]+)");
+        return match.Success ? match.Groups[1].Value : null;
+    }
+
+    private async Task TryLoadMap()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("loadStoreMap", Latitude, Longitude, selectedStore?.Name);
+        }
+        catch (JSException jsEx)
+        {
+            Console.WriteLine("Erro ao carregar mapa: " + jsEx.Message);
+        }
+    }
+}
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script>
+    window.downloadFileFromStream = async (fileName, contentStreamReference) => {
+        const arrayBuffer = await contentStreamReference.arrayBuffer();
+        const blob = new Blob([arrayBuffer]);
+        const url = URL.createObjectURL(blob);
+
+        const anchorElement = document.createElement("a");
+        anchorElement.href = url;
+        anchorElement.download = fileName ?? '';
+        anchorElement.click();
+
+        anchorElement.remove();
+        URL.revokeObjectURL(url);
+    };
+
+    window.captureMapAsImage = async () => {
+        const mapElement = document.getElementById('map');
+        if (!mapElement) return null;
+
+        const canvas = await html2canvas(mapElement);
+        return canvas.toDataURL('image/png');
+    };
+
+    console.log("Funções JS registadas com sucesso");
+</script>

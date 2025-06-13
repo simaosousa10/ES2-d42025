@@ -30,14 +30,31 @@
             <button class="btn btn-primary w-100 p-3" @onclick="NavigationToListUsers">
                 <i class="bi bi-people me-2"></i> Utilizadores
             </button>
-
         </div>
         <div class="col-md-4">
-            <button class="btn btn-outline-primary w-100 p-3" disabled>
+            <!-- Botão de Relatórios -->
+            <button class="@GetReportButtonClass()" @onclick="ToggleReports">
                 <i class="bi bi-bar-chart me-2"></i> Relatórios
             </button>
+
+            <!-- Sub-opções visíveis apenas se expandedReports == true -->
+            @if (expandedReports)
+            {
+                <div class="mt-2 d-grid gap-2">
+                    <button class="btn btn-outline-primary" @onclick="NavigationToReportStores">
+                        Relatório Geral de Lojas
+                    </button>
+                    <button class="btn btn-outline-primary" @onclick="NavigationToReportStore">
+                        Relatório Específico por Loja
+                    </button>
+                    <button class="btn btn-outline-primary" @onclick="NavigationToReportProduct">
+                        Relatório Específico por Produto
+                    </button>
+                </div>
+            }
         </div>
-        <!-- New Button for Messages -->
+
+
         <div class="col-md-4">
             <button class="btn btn-primary w-100 p-3" @onclick="NavigationToMessages">
                 <i class="bi bi-chat-dots me-2"></i> Mensagens
@@ -47,6 +64,20 @@
 </div>
 
 @code {
+    private bool expandedReports = false;
+
+    public void ToggleReports()
+    {
+        expandedReports = !expandedReports;
+    }
+
+    private string GetReportButtonClass()
+    {
+        return expandedReports
+            ? "btn btn-outline-primary w-100 p-3"
+            : "btn btn-primary w-100 p-3";
+    }
+
     public void NavigationToProductOverview()
     {
         Navigation.NavigateTo("products");
@@ -57,13 +88,28 @@
         Navigation.NavigateTo("stores");
     }
 
+    public void NavigationToReportStores()
+    {
+        Navigation.NavigateTo("/reports/general");
+    }
+
+    public void NavigationToReportStore()
+    {
+        Navigation.NavigateTo("/reports/store");
+    }
+
+    public void NavigationToReportProduct()
+    {
+        Navigation.NavigateTo("/reports/product");
+    }
+
     public void NavigationToMessages()
     {
-        Navigation.NavigateTo("/admin/messages"); // <-- Exact route to your messages page
+        Navigation.NavigateTo("/admin/messages");
     }
+
     public void NavigationToListUsers()
     {
         Navigation.NavigateTo("/ListUsers");
     }
-
 }
