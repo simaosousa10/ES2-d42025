@@ -12,10 +12,10 @@
 
 <h1 class="visually-hidden">Profile</h1>
 
-<div class="container-fluid px-4 mt-4">
-    <div class="row">
+<div class="container px-5 mt-4">
+    <div class="row gx-5">
         <!-- Sidebar -->
-        <div class="col-md-3 col-lg-2 bg-light px-4 py-4">
+        <div class="col-md-3 col-lg-2 px-3 py-4">
             <div class="text-center mb-4">
                 <i class="bi bi-person-circle" style="font-size: 4.5rem; color: #2962FF;"></i>
                 <h5 class="mt-3 fw-bold" style="color: #2962FF; font-size: 1.3rem;">Hello, @userName!</h5>
@@ -56,11 +56,70 @@
         </div>
 
         <!-- Main Content -->
-        <div class="col-md-9 col-lg-10 px-4 py-4">
+        <div class="col-md-9 col-lg-9 offset-lg-1 px-5 py-4 bg-white rounded shadow-sm">
             @if (selectedSection == "Account")
             {
-                <h3 class="fw-bold mb-4">👤 Conta</h3>
-                <p class="text-muted">Informações da conta serão aqui apresentadas futuramente.</p>
+                <div class="mb-4 border-bottom d-flex align-items-center gap-4 custom-tabs">
+                    <button class="btn border-0 fw-semibold @(activeTab == "Profile" ? "active-tab" : "text-muted")" @onclick="@(() => SelectTab("Profile"))">
+                        <i class="bi bi-person"></i> Perfil
+                    </button>
+                    <button class="btn border-0 fw-semibold @(activeTab == "Security" ? "active-tab" : "text-muted")" @onclick="@(() => SelectTab("Security"))">
+                        <i class="bi bi-shield-lock"></i> Segurança
+                    </button>
+                    <button class="btn border-0 fw-semibold @(activeTab == "Deactivate" ? "text-danger active-tab-red" : "text-muted")" @onclick="@(() => SelectTab("Deactivate"))">
+                        <i class="bi bi-x"></i> Desativar
+                    </button>
+                </div>
+
+                <div>
+                    @if (activeTab == "Profile")
+                    {
+                        <EditForm Model="userModel" OnValidSubmit="SaveProfile">
+                            <DataAnnotationsValidator />
+                            <div class="mb-3">
+                                <label class="form-label">Nome</label>
+                                <InputText class="form-control" @bind-Value="userModel.FirstName" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Data de Nascimento</label>
+                                <InputDate class="form-control" @bind-Value="userModel.BirthDate" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Telemóvel</label>
+                                <InputText class="form-control" @bind-Value="userModel.PhoneNumber" />
+                            </div>
+                            <div class="mb-3">
+                                <button class="btn btn-primary" type="submit">Guardar</button>
+                            </div>
+                        </EditForm>
+                    }
+                    else if (activeTab == "Security")
+                    {
+                        <h4 class="mb-4">Alterar password</h4>
+                        <EditForm Model="this" OnValidSubmit="ChangePassword">
+                            <DataAnnotationsValidator />
+                            <div class="mb-3">
+                                <label class="form-label">Password atual</label>
+                                <InputText type="password" class="form-control" @bind-Value="currentPassword" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Nova password</label>
+                                <InputText type="password" class="form-control" @bind-Value="newPassword" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Confirmar a nova password</label>
+                                <InputText type="password" class="form-control" @bind-Value="confirmPassword" />
+                            </div>
+                            <button class="btn btn-primary" type="submit">Guardar</button>
+                        </EditForm>
+                    }
+                    else if (activeTab == "Deactivate")
+                    {
+                        <h4>Apagar conta</h4>
+                        <p>Esta ação é irreversível. A tua conta será desativada e serás redirecionado para o logout.</p>
+                        <button class="btn btn-danger" @onclick="DeactivateAccount">Desativar Conta</button>
+                    }
+                </div>
             }
             else if (selectedSection == "Confirmations")
             {
@@ -110,11 +169,35 @@
     </div>
 </div>
 
+<style>
+    .custom-tabs .btn {
+        border-radius: 0;
+        padding-bottom: 0.5rem;
+        border-bottom: 3px solid transparent;
+    }
+    .custom-tabs .btn.active-tab {
+        border-color: #2962FF;
+        color: #2962FF !important;
+    }
+    .custom-tabs .btn.active-tab-red {
+        border-color: #dc3545;
+        color: #dc3545 !important;
+    }
+</style>
+
 @code {
-    private string selectedSection = "Confirmations";
+    private string selectedSection = "Account";
+    private string activeTab = "Profile";
+    private string userName = "User";
+    private string? userId;
+
     private List<PriceConfirmation> confirmations = new();
     private List<Message> userMessages = new();
-    private string userName = "User";
+    private UserEditModel userModel = new();
+
+    private string currentPassword = string.Empty;
+    private string newPassword = string.Empty;
+    private string confirmPassword = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
@@ -124,8 +207,8 @@
         if (user.Identity?.IsAuthenticated == true)
         {
             userName = user.Identity.Name ?? "User";
-            var userId = user.FindFirst("sub")?.Value
-                         ?? user.FindFirst("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier")?.Value;
+            userId = user.FindFirst("sub")?.Value
+                     ?? user.FindFirst("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier")?.Value;
 
             if (!string.IsNullOrEmpty(userId))
             {
@@ -135,17 +218,77 @@
                     .Where(m => m.UserID == userId)
                     .OrderByDescending(m => m.Sent_Date)
                     .ToListAsync();
+
+                var dbUser = await UserManager.FindByIdAsync(userId);
+                if (dbUser != null)
+                {
+                    userModel = new UserEditModel
+                    {
+                        FirstName = dbUser.Name,
+                        LastName = dbUser.UserName,
+                        PhoneNumber = dbUser.PhoneNumber,
+                        BirthDate = dbUser.DateOfBirth
+                    };
+                }
             }
         }
     }
 
-    private void SelectSection(string section)
+    private void SelectSection(string section) => selectedSection = section;
+    private void SelectTab(string tab) => activeTab = tab;
+
+    private void Logout() => Navigation.NavigateTo("/Account/Logout", true);
+
+    private async Task SaveProfile()
     {
-        selectedSection = section;
+        if (userId != null)
+        {
+            var dbUser = await UserManager.FindByIdAsync(userId);
+            if (dbUser != null)
+            {
+                dbUser.Name = userModel.FirstName;
+                dbUser.PhoneNumber = userModel.PhoneNumber;
+                dbUser.DateOfBirth = userModel.BirthDate;
+                await UserManager.UpdateAsync(dbUser);
+            }
+        }
     }
 
-    private void Logout()
+    private async Task ChangePassword()
     {
-        Navigation.NavigateTo("/Account/Logout", forceLoad: true);
+        if (userId != null)
+        {
+            var dbUser = await UserManager.FindByIdAsync(userId);
+            if (dbUser != null && !string.IsNullOrEmpty(currentPassword) && newPassword == confirmPassword)
+            {
+                var result = await UserManager.ChangePasswordAsync(dbUser, currentPassword, newPassword);
+                if (!result.Succeeded)
+                {
+                    // Lógica para mostrar erros se necessário
+                }
+            }
+        }
+    }
+
+    private async Task DeactivateAccount()
+    {
+        if (userId != null)
+        {
+            var dbUser = await UserManager.FindByIdAsync(userId);
+            if (dbUser != null)
+            {
+                dbUser.IsActive = false;
+                await UserManager.UpdateAsync(dbUser);
+                Navigation.NavigateTo("/Account/Logout", forceLoad: true);
+            }
+        }
+    }
+
+    private class UserEditModel
+    {
+        public string FirstName { get; set; } = string.Empty;
+        public string LastName { get; set; } = string.Empty;
+        public string PhoneNumber { get; set; } = string.Empty;
+        public DateTime? BirthDate { get; set; }
     }
 }
