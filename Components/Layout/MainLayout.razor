@@ -1,11 +1,20 @@
 ﻿@inherits LayoutComponentBase
+@inject NavigationManager NavigationManager
 @inject IJSRuntime JS
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" crossorigin=""/>
 
 <div class="page">
     <header class="fixed-top bg-white shadow-sm">
-        <NavBar/>
+        @if (
+            !NavigationManager.Uri.Contains("/Account/login") &&
+            !NavigationManager.Uri.Contains("/Account/register") &&
+            !NavigationManager.Uri.Contains("/Account/ForgotPassword") &&
+            !NavigationManager.Uri.Contains("/Account/InactiveAccount")
+        )
+        {
+            <NavBar />
+        }
     </header>
 
     <main style="margin-top: 70px;">
