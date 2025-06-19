@@ -18,40 +18,121 @@
 
 <PageTitle>Register</PageTitle>
 
-<h1>Register</h1>
+<style>
+    body {
+        background-color: #f8f9fa;
+        margin: 0;
+    }
 
-<div class="row">
-    <div class="col-md-4">
+    .auth-logo {
+        position: absolute;
+        top: -35px;
+        left: 20px;
+        width: 160px;
+    }
+
+    .register-wrapper {
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        min-height: 100vh;
+        padding-top: 40px;
+    }
+
+    .register-card {
+        background-color: white;
+        padding: 50px;
+        border-radius: 16px;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        width: 460px;
+    }
+
+    .register-card h2 {
+        text-align: center;
+        color: #3064fc;
+        margin-bottom: 30px;
+        font-size: 26px;
+    }
+
+    .form-label {
+        font-weight: 500;
+    }
+
+    .form-control {
+        margin-bottom: 15px;
+    }
+
+    .btn-register {
+        width: 100%;
+        background-color: #3064fc;
+        color: white;
+        font-weight: 600;
+        border: none;
+        padding: 12px;
+        border-radius: 6px;
+        margin-top: 10px;
+        font-size: 16px;
+    }
+
+    .btn-register:hover {
+        background-color: #2553cc;
+    }
+
+    .register-links {
+        text-align: center;
+        margin-top: 20px;
+    }
+
+    .register-links a {
+        color: #3064fc;
+        font-size: 14px;
+        text-decoration: none;
+    }
+
+    .register-links a:hover {
+        text-decoration: underline;
+    }
+</style>
+
+<a href="/">
+    <img src="/images/LogoEmAzul.png" class="auth-logo" alt="DealRadar Logo" />
+</a>
+
+<div class="register-wrapper">
+    <div class="register-card">
+        <h2>Create a new account</h2>
+
         <StatusMessage Message="@Message" />
         <EditForm Model="Input" asp-route-returnUrl="@ReturnUrl" method="post" OnValidSubmit="RegisterUser" FormName="register">
             <DataAnnotationsValidator />
-            <h2>Create a new account.</h2>
-            <hr />
             <ValidationSummary class="text-danger" role="alert" />
-            <div class="form-floating mb-3">
-                <InputText @bind-Value="Input.Email" class="form-control" autocomplete="username" aria-required="true" placeholder="name@example.com" />
-                <label for="email">Email</label>
-                <ValidationMessage For="() => Input.Email" class="text-danger" />
+
+            <label for="name" class="form-label">Full Name</label>
+            <InputText @bind-Value="Input.Name" class="form-control" placeholder="Your name" />
+            <ValidationMessage For="() => Input.Name" class="text-danger" />
+
+            <label for="dob" class="form-label">Date of Birth</label>
+            <InputDate @bind-Value="Input.DateOfBirth" class="form-control" />
+            <ValidationMessage For="() => Input.DateOfBirth" class="text-danger" />
+
+            <label for="email" class="form-label">Email</label>
+            <InputText @bind-Value="Input.Email" class="form-control" autocomplete="username" placeholder="name@example.com" />
+            <ValidationMessage For="() => Input.Email" class="text-danger" />
+
+            <label for="password" class="form-label">Password</label>
+            <InputText type="password" @bind-Value="Input.Password" class="form-control" autocomplete="new-password" placeholder="Password" />
+            <ValidationMessage For="() => Input.Password" class="text-danger" />
+
+            <label for="confirm-password" class="form-label">Confirm Password</label>
+            <InputText type="password" @bind-Value="Input.ConfirmPassword" class="form-control" autocomplete="new-password" placeholder="Confirm password" />
+            <ValidationMessage For="() => Input.ConfirmPassword" class="text-danger" />
+
+            <button type="submit" class="btn-register">Register</button>
+
+            <div class="register-links">
+                <a href="/Account/Login">Already have an account? Login</a>
             </div>
-            <div class="form-floating mb-3">
-                <InputText type="password" @bind-Value="Input.Password" class="form-control" autocomplete="new-password" aria-required="true" placeholder="password" />
-                <label for="password">Password</label>
-                <ValidationMessage For="() => Input.Password" class="text-danger" />
-            </div>
-            <div class="form-floating mb-3">
-                <InputText type="password" @bind-Value="Input.ConfirmPassword" class="form-control" autocomplete="new-password" aria-required="true" placeholder="password" />
-                <label for="confirm-password">Confirm Password</label>
-                <ValidationMessage For="() => Input.ConfirmPassword" class="text-danger" />
-            </div>
-            <button type="submit" class="w-100 btn btn-lg btn-primary">Register</button>
         </EditForm>
-    </div>
-    <div class="col-md-6 col-md-offset-2">
-        <section>
-            <h3>Use another service to register.</h3>
-            <hr />
-            <ExternalLoginPicker />
-        </section>
     </div>
 </div>
 
@@ -69,6 +150,9 @@
     public async Task RegisterUser(EditContext editContext)
     {
         var user = CreateUser();
+
+        user.Name = Input.Name;
+        user.DateOfBirth = DateTime.SpecifyKind(Input.DateOfBirth, DateTimeKind.Utc);
 
         await UserStore.SetUserNameAsync(user, Input.Email, CancellationToken.None);
         var emailStore = GetEmailStore();
@@ -94,9 +178,10 @@
 
         if (UserManager.Options.SignIn.RequireConfirmedAccount)
         {
-            RedirectManager.RedirectTo(
-                "Account/RegisterConfirmation",
-                new() { ["email"] = Input.Email, ["returnUrl"] = ReturnUrl });
+            RedirectManager.RedirectTo("Account/RegisterConfirmation", new() {
+                ["email"] = Input.Email,
+                ["returnUrl"] = ReturnUrl
+            });
         }
 
         await SignInManager.SignInAsync(user, isPersistent: false);
@@ -112,7 +197,7 @@
         catch
         {
             throw new InvalidOperationException($"Can't create an instance of '{nameof(User)}'. " +
-                $"Ensure that '{nameof(User)}' is not an abstract class and has a parameterless constructor.");
+                                                $"Ensure that '{nameof(User)}' is not an abstract class and has a parameterless constructor.");
         }
     }
 
@@ -128,18 +213,23 @@
     private sealed class InputModel
     {
         [Required]
+        public string Name { get; set; } = "";
+
+        [Required]
+        [DataType(DataType.Date)]
+        [Display(Name = "Date of Birth")]
+        public DateTime DateOfBirth { get; set; }
+
+        [Required]
         [EmailAddress]
-        [Display(Name = "Email")]
         public string Email { get; set; } = "";
 
         [Required]
         [StringLength(100, ErrorMessage = "The {0} must be at least {2} and at max {1} characters long.", MinimumLength = 6)]
         [DataType(DataType.Password)]
-        [Display(Name = "Password")]
         public string Password { get; set; } = "";
 
         [DataType(DataType.Password)]
-        [Display(Name = "Confirm password")]
         [Compare("Password", ErrorMessage = "The password and confirmation password do not match.")]
         public string ConfirmPassword { get; set; } = "";
     }

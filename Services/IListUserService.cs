@@ -7,5 +7,8 @@ public interface IListUserService
     Task<List<ListUserDto>> GetAllUsersAsync();
     
     Task SetUserActiveStatusAsync(string userId, bool isActive);
+    
+    Task UpdateUserRoleAsync(string userId, string role);
+
 
 }

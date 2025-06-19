@@ -22,7 +22,8 @@
                        style="width: 500px;"
                        @bind="searchTerm"
                        @bind:event="oninput"
-                       @onkeypress="HandleKeyPress"/>
+                       @onkeypress="HandleKeyPress"
+                       @onblur="HideSuggestions"/>
 
 
                 <span class="position-absolute end-0 pe-3 text-muted" style="cursor: pointer;" @onclick="() => HandleSearch(searchTerm)">
@@ -66,15 +67,17 @@
                         @if (user.IsInRole("Admin"))
                         {
                             <span class="small d-none d-md-inline me-5">Admin Features</span>
-                        } 
+                        }
                     </NavLink>
-                    <NavLink href="/profile" class="d-flex align-items-center text-white text-decoration-none">
 
-
+                    <NavLink href="UserManagerFeatures" class="d-flex align-items-right text-white text-decoration-none">
                         @if (user.IsInRole("UserManager"))
                         {
-                            <span class="small d-none d-md-inline me-4">UserManager Features</span>
+                            <span class="small d-none d-md-inline me-5">UserManager Features</span>
                         }
+                    </NavLink>
+                    
+                    <NavLink href="/profile" class="d-flex align-items-center text-white text-decoration-none">
 
                         <i class="bi bi-person-circle me-2" style="font-size: 1.6rem;"></i>
                         <span class="small d-none d-md-inline">Welcome, @user.Identity?.Name</span>
@@ -181,5 +184,12 @@
         searchTerm = "";
         suggestions.Clear();
         suppressSearchTrigger = false;
+    }
+    
+    private async Task HideSuggestions()
+    {
+        await Task.Delay(150);
+        suggestions.Clear();
+        StateHasChanged();
     }
 }

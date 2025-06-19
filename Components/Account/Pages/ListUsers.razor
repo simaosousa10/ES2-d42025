@@ -5,17 +5,14 @@
 @rendermode @(new InteractiveServerRenderMode(prerender: false));
 @inject JsInteropService JsInterop
 
-
-
-
 <PageTitle>Utilizadores</PageTitle>
 
 <div class="container-fluid mt-4">
     <div class="d-flex justify-content-start align-items-center mb-3">
         <button class="btn btn-outline-secondary me-3" @onclick="GoBack">
-            <i class="bi bi-arrow-left"></i> 
+            <i class="bi bi-arrow-left"></i>
         </button>
-        <h3 class="mb-0">👥Utilizadores</h3>
+        <h3 class="mb-0">👥 Utilizadores</h3>
     </div>
 </div>
 
@@ -31,10 +28,9 @@ else
             <th>ID</th>
             <th>Nome</th>
             <th>Email</th>
-            <th>Telemóvel</th>
+            <th>Role</th>
             <th>Ativo</th>
             <th>Ações</th>
-
         </tr>
         </thead>
         <tbody>
@@ -44,13 +40,28 @@ else
                 <td>@user.Id</td>
                 <td>@user.Name</td>
                 <td>@user.Email</td>
-                <td>@user.PhoneNumber</td>
+                <td>
+                    @if (editingRoleId == user.Id)
+                    {
+                        <select class="form-select form-select-sm" @bind="user.Role" @bind:after="() => UpdateUserRole(user)">
+                            <option value="Admin">Admin</option>
+                            <option value="Manager">Manager</option>
+                            <option value="User">User</option>
+                        </select>
+                    }
+                    else
+                    {
+                        <span @onclick="() => editingRoleId = user.Id" style="cursor: pointer; color: #3064fc; text-decoration: underline;">
+                            @user.Role
+                        </span>
+                    }
+                </td>
                 <td>@(user.IsActive ? "Sim" : "Não")</td>
                 <td>
                     <button class="btn btn-primary btn-sm me-2" @onclick="() => VerAtividades(user.Id)">
                         Ver Atividades
                     </button>
-                    
+
                     @if (user.IsActive)
                     {
                         <button class="btn btn-warning btn-sm me-2" @onclick="() => ToggleUserState(user.Id, false)">Desativar</button>
@@ -59,13 +70,7 @@ else
                     {
                         <button class="btn btn-success btn-sm me-2" @onclick="() => ToggleUserState(user.Id, true)">Ativar</button>
                     }
-
                 </td>
-
-
-
-
-
             </tr>
         }
         </tbody>
@@ -73,7 +78,8 @@ else
 }
 
 @code {
-    List<ListUserDto> users = new List<ListUserDto>();
+    List<ListUserDto> users = new();
+    string? editingRoleId = null;
 
     protected override async Task OnInitializedAsync()
     {
@@ -87,12 +93,11 @@ else
         }
     }
 
-
     private void GoBack()
     {
         NavigationManager.NavigateTo("/AdminFeatures");
     }
-    
+
     private async Task ToggleUserState(string userId, bool newState)
     {
         var user = users.FirstOrDefault(u => u.Id == userId);
@@ -108,10 +113,15 @@ else
         users = await ListUserService.GetAllUsersAsync();
         StateHasChanged();
     }
-    
+
+    private async Task UpdateUserRole(ListUserDto user)
+    {
+        editingRoleId = null;
+        await ListUserService.UpdateUserRoleAsync(user.Id, user.Role);
+    }
+
     private void VerAtividades(string userId)
     {
         NavigationManager.NavigateTo($"/UserActivities/{userId}");
     }
-
 }

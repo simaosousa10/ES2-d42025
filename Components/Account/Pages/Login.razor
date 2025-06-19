@@ -1,5 +1,4 @@
 ﻿@page "/Account/Login"
-
 @using System.ComponentModel.DataAnnotations
 @using BlazorAuthorizationDotNet8.Components.Account
 @using Microsoft.AspNetCore.Authentication
@@ -10,57 +9,134 @@
 @inject NavigationManager NavigationManager
 @inject IdentityRedirectManager RedirectManager
 
-<PageTitle>Log in</PageTitle>
+<PageTitle>Login</PageTitle>
 
-<h1>Log in</h1>
-<div class="row">
-    <div class="col-md-4">
-        <section>
-            <StatusMessage Message="@errorMessage" />
-            <EditForm Model="Input" method="post" OnValidSubmit="LoginUser" FormName="login">
-                <DataAnnotationsValidator />
-                <h2>Use a local account to log in.</h2>
-                <hr />
-                <ValidationSummary class="text-danger" role="alert" />
-                <div class="form-floating mb-3">
-                    <InputText @bind-Value="Input.Email" class="form-control" autocomplete="username" aria-required="true" placeholder="name@example.com" />
-                    <label for="email" class="form-label">Email</label>
-                    <ValidationMessage For="() => Input.Email" class="text-danger" />
-                </div>
-                <div class="form-floating mb-3">
-                    <InputText type="password" @bind-Value="Input.Password" class="form-control" autocomplete="current-password" aria-required="true" placeholder="password" />
-                    <label for="password" class="form-label">Password</label>
-                    <ValidationMessage For="() => Input.Password" class="text-danger" />
-                </div>
-                <div class="checkbox mb-3">
-                    <label class="form-label">
-                        <InputCheckbox @bind-Value="Input.RememberMe" class="darker-border-checkbox form-check-input" />
-                        Remember me
-                    </label>
-                </div>
-                <div>
-                    <button type="submit" class="w-100 btn btn-lg btn-primary">Log in</button>
-                </div>
-                <div>
-                    <p>
-                        <a href="Account/ForgotPassword">Forgot your password?</a>
-                    </p>
-                    <p>
-                        <a href="@(NavigationManager.GetUriWithQueryParameters("Account/Register", new Dictionary<string, object?> { ["ReturnUrl"] = ReturnUrl }))">Register as a new user</a>
-                    </p>
-                    <p>
-                        <a href="Account/ResendEmailConfirmation">Resend email confirmation</a>
-                    </p>
-                </div>
-            </EditForm>
-        </section>
-    </div>
-    <div class="col-md-6 col-md-offset-2">
-        <section>
-            <h3>Use another service to log in.</h3>
-            <hr />
-            <ExternalLoginPicker />
-        </section>
+<style>
+    body {
+        background-color: #f8f9fa;
+        margin: 0;
+    }
+
+    .auth-logo {
+        position: absolute;
+        top: -35px;
+        left: 20px;
+        width: 160px;
+    }
+
+    .login-wrapper {
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        min-height: 100vh;
+        padding-top: 40px;
+    }
+
+    .login-card {
+        background-color: white;
+        padding: 50px;
+        border-radius: 16px;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        width: 460px;
+    }
+
+    .login-card h2 {
+        text-align: center;
+        color: #3064fc;
+        margin-bottom: 30px;
+        font-size: 26px;
+    }
+
+    .form-label {
+        font-weight: 500;
+    }
+
+    .form-control {
+        margin-bottom: 15px;
+    }
+
+    .form-check-label {
+        font-weight: normal;
+    }
+
+    .btn-login {
+        width: 100%;
+        background-color: #3064fc;
+        color: white;
+        font-weight: 600;
+        border: none;
+        padding: 12px;
+        border-radius: 6px;
+        margin-top: 10px;
+        font-size: 16px;
+    }
+
+    .btn-login:hover {
+        background-color: #2553cc;
+    }
+
+    .login-links {
+        text-align: center;
+        margin-top: 20px;
+    }
+
+    .login-links a {
+        display: block;
+        color: #3064fc;
+        font-size: 14px;
+        text-decoration: none;
+        margin-bottom: 5px;
+    }
+
+    .login-links a:hover {
+        text-decoration: underline;
+    }
+
+    .text-danger {
+        color: red;
+        text-align: center;
+        margin-bottom: 10px;
+    }
+</style>
+
+<a href="/">
+    <img src="/images/LogoEmAzul.png" class="auth-logo" alt="DealRadar Logo" />
+</a>
+
+<div class="login-wrapper">
+    <div class="login-card">
+        <h2><strong>Login</strong></h2>
+
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="text-danger">@errorMessage</div>
+        }
+
+        <EditForm Model="Input" method="post" OnValidSubmit="LoginUser" FormName="loginForm">
+            <DataAnnotationsValidator />
+            <ValidationSummary class="text-danger" />
+
+            <label for="email" class="form-label">Email</label>
+            <InputText @bind-Value="Input.Email" id="email" class="form-control" placeholder="Enter your email" />
+            <ValidationMessage For="@(() => Input.Email)" class="text-danger" />
+
+            <label for="password" class="form-label">Password</label>
+            <InputText @bind-Value="Input.Password" id="password" type="password" class="form-control" placeholder="Enter your password" />
+            <ValidationMessage For="@(() => Input.Password)" class="text-danger" />
+
+            <div class="form-check mb-3">
+                <InputCheckbox @bind-Value="Input.RememberMe" class="form-check-input" id="remember" />
+                <label class="form-check-label" for="remember">Remember me</label>
+            </div>
+
+            <button type="submit" class="btn-login">Login</button>
+
+            <div class="login-links">
+                <a href="/Account/ForgotPassword">Forgot your password?</a>
+                <a href="@NavigationManager.GetUriWithQueryParameters("Account/Register", new Dictionary<string, object?> { ["ReturnUrl"] = ReturnUrl })"
+                   style="margin-top: 6px; display: inline-block;">Register as a new user</a>
+            </div>
+        </EditForm>
     </div>
 </div>
 
@@ -80,16 +156,28 @@
     {
         if (HttpMethods.IsGet(HttpContext.Request.Method))
         {
-            // Clear the existing external cookie to ensure a clean login process
             await HttpContext.SignOutAsync(IdentityConstants.ExternalScheme);
         }
     }
 
     public async Task LoginUser()
     {
-        // This doesn't count login failures towards account lockout
-        // To enable password failures to trigger account lockout, set lockoutOnFailure: true
-        var result = await SignInManager.PasswordSignInAsync(Input.Email, Input.Password, Input.RememberMe, lockoutOnFailure: false);
+        var user = await SignInManager.UserManager.FindByEmailAsync(Input.Email);
+
+        if (user == null || !await SignInManager.UserManager.CheckPasswordAsync(user, Input.Password))
+        {
+            errorMessage = "Error: Invalid login attempt.";
+            return;
+        }
+
+        if (!user.IsActive)
+        {
+            NavigationManager.NavigateTo("/Account/InactiveAccount");
+            return;
+        }
+
+        var result = await SignInManager.PasswordSignInAsync(user, Input.Password, Input.RememberMe, lockoutOnFailure: false);
+
         if (result.Succeeded)
         {
             Logger.LogInformation("User logged in.");
@@ -97,9 +185,10 @@
         }
         else if (result.RequiresTwoFactor)
         {
-            RedirectManager.RedirectTo(
-                "Account/LoginWith2fa",
-                new() { ["returnUrl"] = ReturnUrl, ["rememberMe"] = Input.RememberMe });
+            RedirectManager.RedirectTo("Account/LoginWith2fa", new() {
+                ["returnUrl"] = ReturnUrl,
+                ["rememberMe"] = Input.RememberMe
+            });
         }
         else if (result.IsLockedOut)
         {

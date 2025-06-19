@@ -2,7 +2,6 @@
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthProvider
 @using ESIID42025.Data
-@using Microsoft.AspNetCore.Components.Authorization
 @using ESIID42025.Models
 @using Microsoft.AspNetCore.Identity
 @using Microsoft.EntityFrameworkCore
@@ -13,17 +12,17 @@
 
 <h1 class="visually-hidden">Profile</h1>
 
-<div class="container-fluid px-4 mt-4">
-    <div class="row">
+<div class="container px-5 mt-4">
+    <div class="row gx-5">
         <!-- Sidebar -->
-        <div class="col-md-3 col-lg-2 bg-light border-end px-4 py-4">
+        <div class="col-md-3 col-lg-2 px-3 py-4">
             <div class="text-center mb-4">
                 <i class="bi bi-person-circle" style="font-size: 4.5rem; color: #2962FF;"></i>
                 <h5 class="mt-3 fw-bold" style="color: #2962FF; font-size: 1.3rem;">Hello, @userName!</h5>
             </div>
 
             <ul class="list-unstyled">
-                <li class="d-flex justify-content-between align-items-center py-3 border-bottom" style="cursor: pointer;" @onclick="@(() => NavigateTo("/account"))">
+                <li class="d-flex justify-content-between align-items-center py-3 border-bottom" style="cursor: pointer;" @onclick="@(() => SelectSection("Account"))">
                     <div class="d-flex align-items-center">
                         <i class="bi bi-person-fill me-3" style="font-size: 1.5rem; color: black;"></i>
                         <span class="fw-semibold text-dark" style="font-size: 1.2rem;">Account</span>
@@ -31,7 +30,7 @@
                     <i class="bi bi-chevron-right text-muted" style="font-size: 1.2rem;"></i>
                 </li>
 
-                <li class="d-flex justify-content-between align-items-center py-3 border-bottom" style="cursor: pointer;" @onclick="@(() => NavigateTo("/profile"))">
+                <li class="d-flex justify-content-between align-items-center py-3 border-bottom" style="cursor: pointer;" @onclick="@(() => SelectSection("Confirmations"))">
                     <div class="d-flex align-items-center">
                         <i class="bi bi-check-circle me-3" style="font-size: 1.5rem; color: black;"></i>
                         <span class="fw-semibold text-dark" style="font-size: 1.2rem;">Confirmations</span>
@@ -39,7 +38,7 @@
                     <i class="bi bi-chevron-right text-muted" style="font-size: 1.2rem;"></i>
                 </li>
 
-                <li class="d-flex justify-content-between align-items-center py-3 border-bottom" style="cursor: pointer;" @onclick="@(() => NavigateTo("/user/messages"))">
+                <li class="d-flex justify-content-between align-items-center py-3 border-bottom" style="cursor: pointer;" @onclick="@(() => SelectSection("Messages"))">
                     <div class="d-flex align-items-center">
                         <i class="bi bi-chat-left-text me-3" style="font-size: 1.5rem; color: black;"></i>
                         <span class="fw-semibold text-dark" style="font-size: 1.2rem;">Messages</span>
@@ -57,61 +56,148 @@
         </div>
 
         <!-- Main Content -->
-        <div class="col-md-9 col-lg-10 px-4 py-4">
-            <!-- Confirmations -->
-            <h3 class="fw-bold mb-4">Your Confirmations</h3>
+        <div class="col-md-9 col-lg-9 offset-lg-1 px-5 py-4 bg-white rounded shadow-sm">
+            @if (selectedSection == "Account")
+            {
+                <div class="mb-4 border-bottom d-flex align-items-center gap-4 custom-tabs">
+                    <button class="btn border-0 fw-semibold @(activeTab == "Profile" ? "active-tab" : "text-muted")" @onclick="@(() => SelectTab("Profile"))">
+                        <i class="bi bi-person"></i> Perfil
+                    </button>
+                    <button class="btn border-0 fw-semibold @(activeTab == "Security" ? "active-tab" : "text-muted")" @onclick="@(() => SelectTab("Security"))">
+                        <i class="bi bi-shield-lock"></i> Segurança
+                    </button>
+                    <button class="btn border-0 fw-semibold @(activeTab == "Deactivate" ? "text-danger active-tab-red" : "text-muted")" @onclick="@(() => SelectTab("Deactivate"))">
+                        <i class="bi bi-x"></i> Desativar
+                    </button>
+                </div>
 
-            @if (confirmations == null)
-            {
-                <p>Loading confirmations...</p>
-            }
-            else if (!confirmations.Any())
-            {
-                <p class="text-muted">You have no price confirmations yet.</p>
-            }
-            else
-            {
-                <div class="list-group">
-                    @foreach (var confirmation in confirmations)
+                <div>
+                    @if (activeTab == "Profile")
                     {
-                        <div class="list-group-item list-group-item-action">
-                            Product ID: <strong>@confirmation.PriceID</strong><br />
-                            Date: @confirmation.Confirmation_DateTime.ToString("dd/MM/yyyy HH:mm")
-                        </div>
+                        <EditForm Model="userModel" OnValidSubmit="SaveProfile">
+                            <DataAnnotationsValidator />
+                            <div class="mb-3">
+                                <label class="form-label">Nome</label>
+                                <InputText class="form-control" @bind-Value="userModel.FirstName" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Data de Nascimento</label>
+                                <InputDate class="form-control" @bind-Value="userModel.BirthDate" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Telemóvel</label>
+                                <InputText class="form-control" @bind-Value="userModel.PhoneNumber" />
+                            </div>
+                            <div class="mb-3">
+                                <button class="btn btn-primary" type="submit">Guardar</button>
+                            </div>
+                        </EditForm>
+                    }
+                    else if (activeTab == "Security")
+                    {
+                        <h4 class="mb-4">Alterar password</h4>
+                        <EditForm Model="this" OnValidSubmit="ChangePassword">
+                            <DataAnnotationsValidator />
+                            <div class="mb-3">
+                                <label class="form-label">Password atual</label>
+                                <InputText type="password" class="form-control" @bind-Value="currentPassword" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Nova password</label>
+                                <InputText type="password" class="form-control" @bind-Value="newPassword" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Confirmar a nova password</label>
+                                <InputText type="password" class="form-control" @bind-Value="confirmPassword" />
+                            </div>
+                            <button class="btn btn-primary" type="submit">Guardar</button>
+                        </EditForm>
+                    }
+                    else if (activeTab == "Deactivate")
+                    {
+                        <h4>Apagar conta</h4>
+                        <p>Esta ação é irreversível. A tua conta será desativada e serás redirecionado para o logout.</p>
+                        <button class="btn btn-danger" @onclick="DeactivateAccount">Desativar Conta</button>
                     }
                 </div>
             }
-
-            <!-- Messages -->
-            <h3 class="fw-bold mt-5 mb-4">📬 Your Messages</h3>
-
-            @if (!userMessages.Any())
+            else if (selectedSection == "Confirmations")
             {
-                <p class="text-muted">You have no messages.</p>
+                <h3 class="fw-bold mb-4">✅ As suas confirmações</h3>
+                @if (!confirmations.Any())
+                {
+                    <p class="text-muted">Ainda não tem nenhuma confirmação de preços.</p>
+                }
+                else
+                {
+                    <div class="list-group">
+                        @foreach (var confirmation in confirmations)
+                        {
+                            <div class="list-group-item list-group-item-action">
+                                Produto: <strong>@confirmation.PriceID</strong><br />
+                                Data: @confirmation.Confirmation_DateTime.ToString("dd/MM/yyyy HH:mm")
+                            </div>
+                        }
+                    </div>
+                }
             }
-            else
+            else if (selectedSection == "Messages")
             {
-                <div class="list-group">
-                    @foreach (var message in userMessages)
-                    {
-                        <div class="list-group-item list-group-item-action">
-                            <strong>@message.Title</strong><br />
-                            <small class="text-muted">
-                                Sent on: @message.Sent_Date.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
-                            </small>
-                            <p class="mt-2">@message.Content</p>
-                        </div>
-                    }
-                </div>
+                <h3 class="fw-bold mb-4">📬 Mensagens Recebidas</h3>
+                @if (!userMessages.Any())
+                {
+                    <div class="text-center mt-5">
+                        <img src="/images/NoMessage.png" alt="Sem mensagens" style="max-width: 250px; width: 80%;" />
+                        <p class="text-muted mt-3">Sem mensagens por agora.</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="list-group">
+                        @foreach (var message in userMessages)
+                        {
+                            <div class="list-group-item list-group-item-action">
+                                <strong>@message.Title</strong><br />
+                                <small class="text-muted">Enviada em: @message.Sent_Date.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</small>
+                                <p class="mt-2">@message.Content</p>
+                            </div>
+                        }
+                    </div>
+                }
             }
         </div>
     </div>
 </div>
 
+<style>
+    .custom-tabs .btn {
+        border-radius: 0;
+        padding-bottom: 0.5rem;
+        border-bottom: 3px solid transparent;
+    }
+    .custom-tabs .btn.active-tab {
+        border-color: #2962FF;
+        color: #2962FF !important;
+    }
+    .custom-tabs .btn.active-tab-red {
+        border-color: #dc3545;
+        color: #dc3545 !important;
+    }
+</style>
+
 @code {
+    private string selectedSection = "Account";
+    private string activeTab = "Profile";
+    private string userName = "User";
+    private string? userId;
+
     private List<PriceConfirmation> confirmations = new();
     private List<Message> userMessages = new();
-    private string userName = "User";
+    private UserEditModel userModel = new();
+
+    private string currentPassword = string.Empty;
+    private string newPassword = string.Empty;
+    private string confirmPassword = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
@@ -120,9 +206,9 @@
 
         if (user.Identity?.IsAuthenticated == true)
         {
-            userName = user.Identity?.Name ?? "User";
-            var userId = user.FindFirst("sub")?.Value
-                         ?? user.FindFirst("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier")?.Value;
+            userName = user.Identity.Name ?? "User";
+            userId = user.FindFirst("sub")?.Value
+                     ?? user.FindFirst("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier")?.Value;
 
             if (!string.IsNullOrEmpty(userId))
             {
@@ -132,17 +218,77 @@
                     .Where(m => m.UserID == userId)
                     .OrderByDescending(m => m.Sent_Date)
                     .ToListAsync();
+
+                var dbUser = await UserManager.FindByIdAsync(userId);
+                if (dbUser != null)
+                {
+                    userModel = new UserEditModel
+                    {
+                        FirstName = dbUser.Name,
+                        LastName = dbUser.UserName,
+                        PhoneNumber = dbUser.PhoneNumber,
+                        BirthDate = dbUser.DateOfBirth
+                    };
+                }
             }
         }
     }
 
-    private void NavigateTo(string url)
+    private void SelectSection(string section) => selectedSection = section;
+    private void SelectTab(string tab) => activeTab = tab;
+
+    private void Logout() => Navigation.NavigateTo("/Account/Logout", true);
+
+    private async Task SaveProfile()
     {
-        Navigation.NavigateTo(url);
+        if (userId != null)
+        {
+            var dbUser = await UserManager.FindByIdAsync(userId);
+            if (dbUser != null)
+            {
+                dbUser.Name = userModel.FirstName;
+                dbUser.PhoneNumber = userModel.PhoneNumber;
+                dbUser.DateOfBirth = userModel.BirthDate;
+                await UserManager.UpdateAsync(dbUser);
+            }
+        }
     }
 
-    private void Logout()
+    private async Task ChangePassword()
     {
-        Navigation.NavigateTo("/Account/Logout", forceLoad: true);
+        if (userId != null)
+        {
+            var dbUser = await UserManager.FindByIdAsync(userId);
+            if (dbUser != null && !string.IsNullOrEmpty(currentPassword) && newPassword == confirmPassword)
+            {
+                var result = await UserManager.ChangePasswordAsync(dbUser, currentPassword, newPassword);
+                if (!result.Succeeded)
+                {
+                    // Lógica para mostrar erros se necessário
+                }
+            }
+        }
+    }
+
+    private async Task DeactivateAccount()
+    {
+        if (userId != null)
+        {
+            var dbUser = await UserManager.FindByIdAsync(userId);
+            if (dbUser != null)
+            {
+                dbUser.IsActive = false;
+                await UserManager.UpdateAsync(dbUser);
+                Navigation.NavigateTo("/Account/Logout", forceLoad: true);
+            }
+        }
+    }
+
+    private class UserEditModel
+    {
+        public string FirstName { get; set; } = string.Empty;
+        public string LastName { get; set; } = string.Empty;
+        public string PhoneNumber { get; set; } = string.Empty;
+        public DateTime? BirthDate { get; set; }
     }
 }
