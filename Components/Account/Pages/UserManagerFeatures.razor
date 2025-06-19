@@ -1,0 +1,66 @@
+﻿@page "/UserManagerFeatures"
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<div class="container mt-5">
+    <!-- Título -->
+    <div class="text-center mb-4">
+        <h3 class="fw-bold">UserManager Features</h3>
+        <p class="text-muted">Painel de administração para gestão de conteúdos</p>
+    </div>
+
+    <!-- Botões em grelha 2x2 -->
+    <div class="row g-3">
+        <div class="col-md-6">
+            <button class="btn btn-primary w-100 p-3" @onclick="NavigationToProductOverview">
+                <i class="bi bi-box-seam me-2"></i> Produtos
+            </button>
+        </div>
+        <div class="col-md-6">
+            <button class="btn btn-primary w-100 p-3" @onclick="NavigationToStoresList">
+                <i class="bi bi-shop me-2"></i> Lojas
+            </button>
+        </div>
+        <div class="col-md-6">
+            <button class="btn btn-outline-primary w-100 p-3" disabled>
+                <i class="bi bi-tags me-2"></i> Categorias
+            </button>
+        </div>
+        <div class="col-md-6">
+            <button class="btn btn-primary w-100 p-3" @onclick="NavigationToListUsers">
+                <i class="bi bi-people me-2"></i> Utilizadores
+            </button>
+        </div>
+    </div>
+</div>
+
+@code {
+    private bool expandedReports = false;
+
+    public void ToggleReports()
+    {
+        expandedReports = !expandedReports;
+    }
+
+    private string GetReportButtonClass()
+    {
+        return expandedReports
+            ? "btn btn-outline-primary w-100 p-3"
+            : "btn btn-primary w-100 p-3";
+    }
+
+    public void NavigationToProductOverview()
+    {
+        Navigation.NavigateTo("products");
+    }
+
+    public void NavigationToStoresList()
+    {
+        Navigation.NavigateTo("stores");
+    }
+
+    public void NavigationToListUsers()
+    {
+        Navigation.NavigateTo("/ListUsers");
+    }
+}
