@@ -13,28 +13,28 @@
     <div class="row g-3">
         <div class="col-md-4">
             <button class="btn btn-primary w-100 p-3" @onclick="NavigationToProductOverview">
-                <i class="bi bi-box-seam me-2"></i> Produtos
+                <i class="bi bi-box-seam me-2"></i> Products
             </button>
         </div>
         <div class="col-md-4">
             <button class="btn btn-primary w-100 p-3" @onclick="NavigationToStoresList">
-                <i class="bi bi-shop me-2"></i> Lojas
+                <i class="bi bi-shop me-2"></i> Stores
             </button>
         </div>
         <div class="col-md-4">
-            <button class="btn btn-outline-primary w-100 p-3" disabled>
-                <i class="bi bi-tags me-2"></i> Categorias
+            <button class="btn btn-primary w-100 p-3" @onclick="NavigationToCategories">
+                <i class="bi bi-tags me-2"></i> Categories
             </button>
         </div>
         <div class="col-md-4">
             <button class="btn btn-primary w-100 p-3" @onclick="NavigationToListUsers">
-                <i class="bi bi-people me-2"></i> Utilizadores
+                <i class="bi bi-people me-2"></i> Users
             </button>
         </div>
         <div class="col-md-4">
             <!-- Botão de Relatórios -->
             <button class="@GetReportButtonClass()" @onclick="ToggleReports">
-                <i class="bi bi-bar-chart me-2"></i> Relatórios
+                <i class="bi bi-bar-chart me-2"></i> Reports
             </button>
 
             <!-- Sub-opções visíveis apenas se expandedReports == true -->
@@ -42,13 +42,13 @@
             {
                 <div class="mt-2 d-grid gap-2">
                     <button class="btn btn-outline-primary" @onclick="NavigationToReportStores">
-                        Relatório Geral de Lojas
+                        Stores General Report
                     </button>
                     <button class="btn btn-outline-primary" @onclick="NavigationToReportStore">
-                        Relatório Específico por Loja
+                        Store Specific Report
                     </button>
                     <button class="btn btn-outline-primary" @onclick="NavigationToReportProduct">
-                        Relatório Específico por Produto
+                        Product Report
                     </button>
                 </div>
             }
@@ -111,5 +111,10 @@
     public void NavigationToListUsers()
     {
         Navigation.NavigateTo("/ListUsers");
+    }
+    
+    public void NavigationToCategories()
+    {
+        Navigation.NavigateTo("/categories");
     }
 }

@@ -1,0 +1,57 @@
+@page "/categories/edit/{ID:int}"
+@using ESIID42025.DTOs
+@inject ICategoryService CategoryService
+@inject NavigationManager NavigationManager
+
+<PageTitle>Edit Category</PageTitle>
+
+@if (category == null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <EditForm Model="category" OnValidSubmit="HandleValidSubmit" FormName="EditCategoryForm">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <div class="mb-3">
+            <label for="name" class="form-label">Name</label>
+            <InputText id="name" @bind-Value="category.Name" class="form-control" />
+            <ValidationMessage For="@(() => category.Name)" />
+        </div>
+
+        <div class="mb-3">
+            <label for="description" class="form-label">Description</label>
+            <InputTextArea id="description" @bind-Value="category.Description" class="form-control" />
+            <ValidationMessage For="@(() => category.Description)" />
+        </div>
+
+        <button type="submit" class="btn btn-primary">Save</button>
+        <button type="button" class="btn btn-secondary ms-2" @onclick="GoBack">Cancel</button>
+    </EditForm>
+}
+
+@code {
+    [Parameter] public int ID { get; set; }
+    private CategoryDto? category;
+
+    protected override async Task OnInitializedAsync()
+    {
+        category = await CategoryService.GetCategoryByIdAsync(ID);
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        if (category != null)
+        {
+            await CategoryService.UpdateCategoryAsync(category);
+            NavigationManager.NavigateTo("/categories");
+        }
+    }
+
+    private void GoBack()
+    {
+        NavigationManager.NavigateTo("/categories");
+    }
+}

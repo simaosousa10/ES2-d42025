@@ -1,0 +1,42 @@
+@page "/categories/create"
+@using ESIID42025.DTOs
+@inject ICategoryService CategoryService
+@inject NavigationManager NavigationManager
+@rendermode InteractiveServer
+
+<PageTitle>Add Category</PageTitle>
+
+<EditForm Model="category" OnValidSubmit="HandleValidSubmit" FormName="CreateCategoryForm">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="mb-3">
+        <label for="name" class="form-label">Name</label>
+        <InputText id="name" @bind-Value="category.Name" class="form-control" />
+        <ValidationMessage For="@(() => category.Name)" />
+    </div>
+
+    <div class="mb-3">
+        <label for="description" class="form-label">Description</label>
+        <InputTextArea id="description" @bind-Value="category.Description" class="form-control" />
+        <ValidationMessage For="@(() => category.Description)" />
+    </div>
+
+    <button type="submit" class="btn btn-primary">Add</button>
+    <button type="button" class="btn btn-secondary ms-2" @onclick="GoBack">Cancel</button>
+</EditForm>
+
+@code {
+    private CategoryDto category = new();
+
+    private async Task HandleValidSubmit()
+    {
+        await CategoryService.AddCategoryAsync(category);
+        NavigationManager.NavigateTo("/categories");
+    }
+
+    private void GoBack()
+    {
+        NavigationManager.NavigateTo("/categories");
+    }
+}

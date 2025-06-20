@@ -1,6 +1,7 @@
 ﻿@page "/category/{CategoryName}"
 @using ESIID42025.Models
 @inject IProductService ProductService
+@inject StoreService StoreService
 @inject NavigationManager Navigation
 @rendermode InteractiveServer
 
@@ -9,8 +10,17 @@
     <p class="text-muted mb-4" style="font-size: 1.1rem;">@CategoryDescription</p>
 </div>
 
-
 <!-- Filtros -->
+<div class="d-flex align-items-center gap-2">
+    <label class="form-label m-0">Store:</label>
+    <select class="form-select" style="width: 180px;" @bind="selectedStore">
+        <option value="">All Stores</option>
+        @foreach (var store in storeNames)
+        {
+            <option value="@store">@store</option>
+        }
+    </select>
+</div>
 <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 px-3">
     <div class="d-flex align-items-center gap-2">
         <label class="form-label m-0">Price Range:</label>
@@ -28,10 +38,7 @@
             <option value="date-desc">Date (Oldest First)</option>
             <option value="date-asc">Date (Newest First)</option>
         </select>
-    
-    
-
-</div>
+    </div>
 </div>
 
 @if (pagedProducts.Any())
@@ -95,6 +102,24 @@ else
     private double maxPrice = 9999;
     private string sortOption = "price-asc";
 
+    // Store filter variables
+    private List<string> storeNames = new();
+    private string _selectedStore = "";
+    private string selectedStore
+    {
+        get => _selectedStore;
+        set
+        {
+            if (_selectedStore != value)
+            {
+                _selectedStore = value;
+                ApplyFilters();
+            }
+        }
+    }
+
+    private List<Product> filteredProducts = new();
+
     protected override async Task OnInitializedAsync()
     {
         allProducts = (await ProductService.GetAllProductsAsync())
@@ -102,7 +127,15 @@ else
             .ToList();
 
         CategoryDescription = allProducts.FirstOrDefault()?.Category?.Description ?? string.Empty;
-        
+
+        // Fetch all stores from the database
+        storeNames = (await StoreService.GetStoresAsync())
+            .Select(s => s.Name)
+            .Where(name => !string.IsNullOrEmpty(name))
+            .Distinct()
+            .OrderBy(name => name)
+            .ToList();
+
         var allPrices = allProducts.SelectMany(p => p.Prices ?? new List<Price>()).ToList();
         if (allPrices.Any())
         {
@@ -122,8 +155,6 @@ else
             .ToList();
     }
 
-    private List<Product> filteredProducts = new();
-
     private void ApplyFilters()
     {
         filteredProducts = allProducts
@@ -134,9 +165,14 @@ else
                     .Select(g => g.OrderByDescending(pr => pr.Date).FirstOrDefault())
                     .OrderBy(pr => pr.Value)
                     .FirstOrDefault();
-                return price == null || (price.Value >= minPrice && price.Value <= maxPrice);
-            })
 
+                // Store filter
+                bool storeMatch = string.IsNullOrEmpty(selectedStore) ||
+                    (price?.Store?.Name == selectedStore);
+
+                return (price == null || (price.Value >= minPrice && price.Value <= maxPrice))
+                    && storeMatch;
+            })
             .ToList();
 
         filteredProducts = sortOption switch
